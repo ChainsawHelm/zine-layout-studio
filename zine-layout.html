@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zine Layout Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Special+Elite&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #f5f0e8;
@@ -402,6 +402,15 @@
     position: absolute;
     cursor: move;
     z-index: 5;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  .canvas-element svg,
+  .canvas-element img,
+  .canvas-element image {
+    pointer-events: none;
+    -webkit-user-drag: none;
   }
 
   .canvas-element.selected {
@@ -508,6 +517,56 @@
   .modal .template-item .t-actions { display: flex; gap: 4px; }
 
   .modal .modal-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+
+  .list-picker {
+    position: absolute;
+    left: 0; right: 0;
+    background: var(--panel-bg);
+    border: 1.5px solid var(--ink);
+    border-radius: var(--radius);
+    padding: 8px;
+    z-index: 100;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .list-picker-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    padding: 2px 4px;
+  }
+
+  .list-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 11px;
+    transition: background 0.1s;
+  }
+
+  .list-picker-item:hover { background: var(--bg); }
+
+  .list-picker-item .lp-count {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .list-picker-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+  }
 
   .toast {
     position: fixed;
@@ -630,7 +689,20 @@
           <svg viewBox="0 0 28 28"><line x1="4" y1="14" x2="24" y2="14" stroke-width="2"/></svg>
           Divider
         </div>
+        <div class="element-btn" onclick="addElement('spine')">
+          <svg viewBox="0 0 28 28"><line x1="14" y1="4" x2="14" y2="24" stroke-width="1.5" stroke-dasharray="2,2"/><text x="16" y="16" font-size="5" fill="currentColor" stroke="none" font-family="monospace" transform="rotate(90,16,16)">date</text></svg>
+          Spine
+        </div>
+        <div class="element-btn" onclick="addImageElement()">
+          <svg viewBox="0 0 28 28"><rect x="4" y="6" width="20" height="16" rx="1.5" fill="none"/><circle cx="10" cy="12" r="2" fill="currentColor" stroke="none"/><polyline points="4,20 10,15 14,18 19,13 24,18 24,22 4,22" fill="currentColor" stroke="none" opacity="0.3"/></svg>
+          Image
+        </div>
+        <div class="element-btn" onclick="showListPicker(event)">
+          <svg viewBox="0 0 28 28"><rect x="4" y="5" width="5" height="5" rx="1"/><text x="12" y="10" font-size="6" fill="currentColor" stroke="none" font-family="monospace">task</text><rect x="4" y="13" width="5" height="5" rx="1"/><text x="12" y="18" font-size="6" fill="currentColor" stroke="none" font-family="monospace">item</text><rect x="4" y="21" width="5" height="5" rx="1"/></svg>
+          Custom List
+        </div>
       </div>
+      <div id="list-picker-container" style="position:relative;"></div>
     </div>
 
     <div class="sidebar-section">
@@ -750,6 +822,19 @@ function getOrdinalSuffix(n) {
   return n + (s[(v-20)%10] || s[v] || s[0]);
 }
 
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+// Panel-to-day mapping: panel 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat, 8=Sun
+const PANEL_DAY_OFFSET = { 2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 8: 6 };
+
+function getMondayOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day; // adjust to Monday
+  d.setDate(d.getDate() + diff);
+  return d;
+}
+
 function formatDateInfo(date) {
   const d = date || new Date();
   const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -760,17 +845,35 @@ function formatDateInfo(date) {
     month: months[d.getMonth()],
     day: getOrdinalSuffix(d.getDate()),
     monthShort: months[d.getMonth()].substring(0, 3),
+    dayName: DAY_NAMES[d.getDay()],
   };
 }
 
+function formatDateForPanel(panelNum, baseDate) {
+  const offset = PANEL_DAY_OFFSET[panelNum];
+  if (offset === undefined) return null;
+  const monday = getMondayOfWeek(baseDate || new Date());
+  const d = new Date(monday);
+  d.setDate(d.getDate() + offset);
+  return formatDateInfo(d);
+}
+
 function updateDateElements(els, date) {
-  const info = formatDateInfo(date);
+  const baseInfo = formatDateInfo(date);
   return els.map(el => {
+    if (el.type === 'spine') {
+      const copy = { ...el };
+      copy.spineText = `${baseInfo.month} ${baseInfo.day}, ${baseInfo.year} · Week ${baseInfo.week} of ${baseInfo.totalWeeks}`;
+      return copy;
+    }
     if (el.type !== 'date-header') return el;
     const copy = { ...el };
+    const panelDate = el.panel >= 2 ? formatDateForPanel(el.panel, date) : null;
+    const info = panelDate || baseInfo;
     copy.dateYear = String(info.year);
     copy.dateWeek = `Week ${info.week} of ${info.totalWeeks}`;
     copy.dateMonthDay = `${info.month} ${info.day}`;
+    copy.dateDayName = info.dayName;
     return copy;
   });
 }
@@ -802,27 +905,75 @@ function getDefaults(type) {
     'v-graph': { ...base, lineCount: 15, lineWeight: 0.5, lineColor: '#000000', crossWeight: 0.25, crossColor: '#000000', label: 'V-Graph' },
     'grid': { ...base, cellSize: 12, lineWeight: 0.5, lineColor: '#000000', label: 'Grid' },
     'dots': { ...base, dotSpacing: 14, dotSize: 1.2, dotColor: '#000000', label: 'Dots' },
-    'checkboxes': { ...base, count: 16, boxSize: 10, spacing: 20, lineAfter: true, lineWidth: 300, lineWeight: 0.6, lineColor: '#000000', boxColor: '#000000', label: 'Checkboxes' },
-    'numbers': { ...base, count: 16, fontSize: 10, spacing: 20, lineAfter: true, lineWidth: 300, lineWeight: 0.6, lineColor: '#000000', numColor: '#000000', label: 'Numbers' },
+    'checkboxes': { ...base, count: 16, boxSize: 10, fontSize: 10, fontFamily: 'mono', showLabels: false, spacing: 20, lineAfter: true, lineWidth: 300, lineWeight: 0.6, lineColor: '#000000', boxColor: '#000000', label: 'Checkboxes' },
+    'numbers': { ...base, count: 16, fontSize: 10, fontFamily: 'mono', spacing: 20, lineAfter: true, lineWidth: 300, lineWeight: 0.6, lineColor: '#000000', numColor: '#000000', label: 'Numbers' },
     'text': { ...base, w: 0, h: 0, content: 'Title', fontSize: 16, fontWeight: 'bold', fontFamily: 'serif', textColor: '#000000', textAlign: 'left', autoSize: true, label: 'Text' },
     'border': { ...base, borderWeight: 1.5, borderColor: '#000000', borderStyle: 'solid', borderRadius: 0, label: 'Border' },
-    'date-header': {
-      x: snap ? panel.x + 6 : 6,
-      y: snap ? panel.y + 4 : 4,
-      w: 0,
-      h: 0,
-      dateYear: String(dateInfo.year),
-      dateWeek: `Week ${dateInfo.week} of ${dateInfo.totalWeeks}`,
-      dateMonthDay: `${dateInfo.month} ${dateInfo.day}`,
-      fontSize: 9,
+    'date-header': (() => {
+      const p = hasPanel ? panels[0] : 0;
+      const panelDate = p >= 2 ? formatDateForPanel(p) : null;
+      const info = panelDate || dateInfo;
+      return {
+        x: snap ? panel.x + 6 : 6,
+        y: snap ? panel.y + 4 : 4,
+        w: 0,
+        h: 0,
+        dateYear: String(info.year),
+        dateWeek: `Week ${info.week} of ${info.totalWeeks}`,
+        dateMonthDay: `${info.month} ${info.day}`,
+        dateDayName: info.dayName || DAY_NAMES[new Date().getDay()],
+        fontSize: 9,
+        fontFamily: 'mono',
+        textColor: '#000000',
+        showYear: true,
+        showWeek: true,
+        showMonthDay: true,
+        showDayName: p >= 2,
+        autoSize: true,
+        label: 'Date Header'
+      };
+    })(),
+    'custom-list': {
+      ...base,
+      items: Array.from({length: 16}, (_, i) => `Item ${i + 1}`),
+      listStyle: 'checkbox',
+      fontSize: 10,
       fontFamily: 'mono',
+      boxSize: 10,
+      lineAfter: false,
+      lineWidth: 200,
+      lineWeight: 0.6,
+      lineColor: '#000000',
       textColor: '#000000',
-      showYear: true,
-      showWeek: true,
-      showMonthDay: true,
-      autoSize: true,
-      label: 'Date Header'
+      boxColor: '#000000',
+      label: 'Custom List'
     },
+    'image': {
+      ...base,
+      w: snap ? panel.w - 16 : 150,
+      h: snap ? panel.h - 16 : 150,
+      imgData: '',
+      imgFit: 'contain',
+      label: 'Image'
+    },
+    'spine': (() => {
+      const info = dateInfo;
+      const spineX = pw * 0.25;
+      const spineY = ph * 0.5;
+      const spineH = ph * 0.5;
+      return {
+        x: spineX - 5,
+        y: spineY,
+        w: 10,
+        h: spineH,
+        spineText: `${info.month} ${info.day}, ${info.year} · Week ${info.week} of ${info.totalWeeks}`,
+        fontSize: 7,
+        fontFamily: 'mono',
+        textColor: '#000000',
+        autoSize: false,
+        label: 'Spine'
+      };
+    })(),
     'separator': {
       ...base,
       h: 3,
@@ -836,6 +987,23 @@ function getDefaults(type) {
   };
 
   return defaults[type];
+}
+
+// Snap a date-header to the upper-right corner of its panel
+function snapDateUpperRight(el) {
+  if (el.type !== 'date-header' || !el.panel || el.panel < 1) return;
+  autoSizeElement(el);
+  const b = getPanelBounds(el.panel);
+  const margin = 6;
+  if (el.flipped) {
+    // Flipped panel: "upper-right as reader sees it" = lower-left on flat sheet
+    el.x = b.x + margin;
+    el.y = b.y + b.h - el.h - margin;
+  } else {
+    // Normal panel: upper-right on flat sheet
+    el.x = b.x + b.w - el.w - margin;
+    el.y = b.y + margin;
+  }
 }
 
 // ══════════════════════════════════════
@@ -852,6 +1020,7 @@ function addElement(type) {
       const savedPanels = new Set(selectedPanels);
       selectedPanels = new Set([p]);
       const el = { id: nextId++, type, ...getDefaults(type), panel: p, flipped: isPanelFlipped(p) };
+      if (type === 'date-header') snapDateUpperRight(el);
       elements.push(el);
       lastId = el.id;
       selectedPanels = savedPanels;
@@ -862,6 +1031,7 @@ function addElement(type) {
   } else {
     const p = panels.length === 1 ? panels[0] : 0;
     const el = { id: nextId++, type, ...getDefaults(type), panel: p, flipped: p > 0 && isPanelFlipped(p) };
+    if (type === 'date-header' && p > 0) snapDateUpperRight(el);
     elements.push(el);
     selectedElementId = el.id;
     renderAll();
@@ -878,7 +1048,7 @@ function removeElement(id) {
 function duplicateSelected() {
   const el = elements.find(e => e.id === selectedElementId);
   if (!el) return;
-  const dup = { ...el, id: nextId++, x: el.x + 15, y: el.y + 15 };
+  const dup = { ...el, id: nextId++, x: el.x + 15, y: el.y + 15, ...(el.items ? { items: [...el.items] } : {}) };
   elements.push(dup);
   selectedElementId = dup.id;
   renderAll();
@@ -976,9 +1146,15 @@ function renderPaper() {
 const _measureCanvas = document.createElement('canvas');
 const _measureCtx = _measureCanvas.getContext('2d');
 
+function resolveFontFamily(f) {
+  if (f === 'serif') return "'Instrument Serif', Georgia, serif";
+  if (f === 'mono') return "'DM Mono', monospace";
+  if (f === 'typewriter') return "'Special Elite', 'Courier New', monospace";
+  return "Arial, sans-serif";
+}
+
 function measureText(text, fontSize, fontFamily, fontWeight) {
-  const fam = fontFamily === 'serif' ? "'Instrument Serif', Georgia, serif" :
-              fontFamily === 'mono' ? "'DM Mono', monospace" : "Arial, sans-serif";
+  const fam = resolveFontFamily(fontFamily);
   _measureCtx.font = `${fontWeight || 'normal'} ${fontSize}px ${fam}`;
   return _measureCtx.measureText(text).width;
 }
@@ -994,6 +1170,7 @@ function autoSizeElement(el) {
 
   if (el.type === 'date-header') {
     let parts = [];
+    if (el.showDayName && el.dateDayName) parts.push(el.dateDayName);
     if (el.showYear) parts.push(el.dateYear);
     if (el.showWeek) parts.push(el.dateWeek);
     if (el.showMonthDay) parts.push(el.dateMonthDay);
@@ -1120,23 +1297,31 @@ function drawElement(el) {
     case 'checkboxes': {
       let items = '';
       const bs = el.boxSize;
+      const fs = el.fontSize || 10;
+      const cbFontFam = resolveFontFamily(el.fontFamily);
       const actualSpacing = h / el.count;
       for (let i = 0; i < el.count; i++) {
         const y = i * actualSpacing + (actualSpacing - bs) / 2;
         items += `<rect x="0" y="${y}" width="${bs}" height="${bs}" rx="1.5" fill="none" stroke="${el.boxColor}" stroke-width="1.2"/>`;
+        if (el.showLabels) {
+          const textY = i * actualSpacing + (actualSpacing + fs) / 2;
+          items += `<text x="${bs + 6}" y="${textY}" font-size="${fs}" font-family="${cbFontFam}" fill="${el.boxColor}">${i + 1}.</text>`;
+        }
         if (el.lineAfter) {
-          items += `<line x1="${bs + 8}" y1="${y + bs}" x2="${bs + 8 + el.lineWidth}" y2="${y + bs}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+          const lineStart = el.showLabels ? bs + 6 + fs * 1.8 : bs + 8;
+          items += `<line x1="${lineStart}" y1="${y + bs}" x2="${lineStart + el.lineWidth}" y2="${y + bs}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
         }
       }
       return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${items}</svg>`;
     }
 
     case 'numbers': {
+      const numFontFam = resolveFontFamily(el.fontFamily);
       let items = '';
       const actualSpacing = h / el.count;
       for (let i = 0; i < el.count; i++) {
         const y = i * actualSpacing + (actualSpacing + el.fontSize) / 2;
-        items += `<text x="0" y="${y}" font-size="${el.fontSize}" font-family="'DM Mono', monospace" fill="${el.numColor}">${i + 1}.</text>`;
+        items += `<text x="0" y="${y}" font-size="${el.fontSize}" font-family="${numFontFam}" fill="${el.numColor}">${i + 1}.</text>`;
         if (el.lineAfter) {
           const textW = el.fontSize * 1.8;
           items += `<line x1="${textW}" y1="${y}" x2="${textW + el.lineWidth}" y2="${y}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
@@ -1148,10 +1333,16 @@ function drawElement(el) {
     case 'text': {
       const anchor = el.textAlign === 'center' ? 'middle' : el.textAlign === 'right' ? 'end' : 'start';
       const tx = el.textAlign === 'center' ? w/2 : el.textAlign === 'right' ? w : 0;
-      const fontFam = el.fontFamily === 'serif' ? "'Instrument Serif', Georgia, serif" :
-                      el.fontFamily === 'mono' ? "'DM Mono', monospace" : "Arial, sans-serif";
+      const fontFam = resolveFontFamily(el.fontFamily);
       return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="xMinYMin meet">
         <text x="${tx}" y="${el.fontSize}" font-size="${el.fontSize}" font-family="${fontFam}" font-weight="${el.fontWeight}" fill="${el.textColor}" text-anchor="${anchor}">${escapeHtml(el.content)}</text>
+      </svg>`;
+    }
+
+    case 'spine': {
+      const fontFam = resolveFontFamily(el.fontFamily);
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+        <text x="${h/2}" y="${w/2 + el.fontSize * 0.35}" font-size="${el.fontSize}" font-family="${fontFam}" fill="${el.textColor}" text-anchor="middle" transform="rotate(90, ${w/2}, ${h/2})">${escapeHtml(el.spineText)}</text>
       </svg>`;
     }
 
@@ -1165,9 +1356,9 @@ function drawElement(el) {
     }
 
     case 'date-header': {
-      const fontFam = el.fontFamily === 'serif' ? "'Instrument Serif', Georgia, serif" :
-                      el.fontFamily === 'mono' ? "'DM Mono', monospace" : "Arial, sans-serif";
+      const fontFam = resolveFontFamily(el.fontFamily);
       let parts = [];
+      if (el.showDayName && el.dateDayName) parts.push(el.dateDayName);
       if (el.showYear) parts.push(el.dateYear);
       if (el.showWeek) parts.push(el.dateWeek);
       if (el.showMonthDay) parts.push(el.dateMonthDay);
@@ -1182,6 +1373,19 @@ function drawElement(el) {
       return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="xMinYMin meet">${texts}</svg>`;
     }
 
+    case 'image': {
+      if (!el.imgData) {
+        return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+          <rect width="${w}" height="${h}" fill="#f0f0f0" stroke="#ccc" stroke-width="0.5" stroke-dasharray="3,2"/>
+          <text x="${w/2}" y="${h/2}" text-anchor="middle" dominant-baseline="middle" font-size="10" font-family="'DM Mono', monospace" fill="#999">Click to upload</text>
+        </svg>`;
+      }
+      const preserve = el.imgFit === 'contain' ? 'xMidYMid meet' : el.imgFit === 'cover' ? 'xMidYMid slice' : 'none';
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+        <image href="${el.imgData}" width="${w}" height="${h}" preserveAspectRatio="${preserve}"/>
+      </svg>`;
+    }
+
     case 'separator': {
       const dash = el.sepStyle === 'dashed' ? `stroke-dasharray="6,3"` :
                    el.sepStyle === 'dotted' ? `stroke-dasharray="2,2"` : '';
@@ -1193,6 +1397,39 @@ function drawElement(el) {
       return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
         <line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="${el.sepColor}" stroke-width="${el.sepWeight}" ${dash}/>
       </svg>`;
+    }
+
+    case 'custom-list': {
+      const fontFam = resolveFontFamily(el.fontFamily);
+      let items = '';
+      const count = el.items.length;
+      const actualSpacing = h / Math.max(count, 1);
+      const bs = el.boxSize;
+
+      for (let i = 0; i < count; i++) {
+        const y = i * actualSpacing + (actualSpacing - bs) / 2;
+        const textY = i * actualSpacing + (actualSpacing + el.fontSize) / 2;
+        let prefixW = 0;
+
+        if (el.listStyle === 'checkbox') {
+          items += `<rect x="0" y="${y}" width="${bs}" height="${bs}" rx="1.5" fill="none" stroke="${el.boxColor}" stroke-width="1.2"/>`;
+          prefixW = bs + 6;
+        } else if (el.listStyle === 'numbered') {
+          items += `<text x="0" y="${textY}" font-size="${el.fontSize}" font-family="${fontFam}" fill="${el.textColor}">${i + 1}.</text>`;
+          prefixW = el.fontSize * 1.8;
+        } else if (el.listStyle === 'bullet') {
+          items += `<circle cx="${el.fontSize * 0.35}" cy="${textY - el.fontSize * 0.3}" r="${el.fontSize * 0.2}" fill="${el.textColor}"/>`;
+          prefixW = el.fontSize * 0.9;
+        }
+
+        items += `<text x="${prefixW}" y="${textY}" font-size="${el.fontSize}" font-family="${fontFam}" fill="${el.textColor}">${escapeHtml(el.items[i])}</text>`;
+
+        if (el.lineAfter) {
+          const textW = prefixW + measureText(el.items[i], el.fontSize, el.fontFamily, 'normal');
+          items += `<line x1="${textW + 4}" y1="${textY}" x2="${textW + 4 + el.lineWidth}" y2="${textY}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+        }
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${items}</svg>`;
     }
 
     default: return '';
@@ -1343,6 +1580,11 @@ function renderProperties() {
     case 'checkboxes':
       html += slider(el.id, 'count', 'Count', el.count, 1, 30);
       html += slider(el.id, 'boxSize', 'Box Size', el.boxSize, 6, 20);
+      html += checkbox(el.id, 'showLabels', 'Show Labels', el.showLabels || false);
+      if (el.showLabels) {
+        html += slider(el.id, 'fontSize', 'Label Size', el.fontSize || 10, 6, 24);
+        html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily || 'mono', [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif'],['typewriter','Typewriter']]);
+      }
       html += checkbox(el.id, 'lineAfter', 'Line After Box', el.lineAfter);
       if (el.lineAfter) {
         html += slider(el.id, 'lineWidth', 'Line Width', el.lineWidth, 20, 300);
@@ -1354,6 +1596,7 @@ function renderProperties() {
     case 'numbers':
       html += slider(el.id, 'count', 'Count', el.count, 1, 50);
       html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 24);
+      html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily || 'mono', [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif'],['typewriter','Typewriter']]);
       html += checkbox(el.id, 'lineAfter', 'Line After Number', el.lineAfter);
       if (el.lineAfter) {
         html += slider(el.id, 'lineWidth', 'Line Width', el.lineWidth, 20, 300);
@@ -1366,7 +1609,7 @@ function renderProperties() {
       html += textInput(el.id, 'content', 'Text', el.content);
       html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 48);
       html += selectControl(el.id, 'fontWeight', 'Font Weight', el.fontWeight, [['normal','Normal'],['bold','Bold'],['300','Light']]);
-      html += selectControl(el.id, 'fontFamily', 'Font Family', el.fontFamily, [['serif','Serif'],['sans','Sans-Serif'],['mono','Monospace']]);
+      html += selectControl(el.id, 'fontFamily', 'Font Family', el.fontFamily, [['serif','Serif'],['sans','Sans-Serif'],['mono','Monospace'],['typewriter','Typewriter']]);
       html += selectControl(el.id, 'textAlign', 'Align', el.textAlign, [['left','Left'],['center','Center'],['right','Right']]);
       html += colorPick(el.id, 'textColor', 'Color', el.textColor);
       html += checkbox(el.id, 'autoSize', 'Auto-size to text', el.autoSize);
@@ -1379,16 +1622,65 @@ function renderProperties() {
       break;
     case 'date-header':
       html += `<button class="small" style="width:100%;margin-bottom:10px;" onclick="refreshDate(${el.id})">Refresh to Today</button>`;
+      html += textInput(el.id, 'dateDayName', 'Day', el.dateDayName || '');
       html += textInput(el.id, 'dateYear', 'Year', el.dateYear);
       html += textInput(el.id, 'dateWeek', 'Week', el.dateWeek);
       html += textInput(el.id, 'dateMonthDay', 'Date', el.dateMonthDay);
       html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 24);
-      html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily, [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif']]);
+      html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily, [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif'],['typewriter','Typewriter']]);
       html += colorPick(el.id, 'textColor', 'Color', el.textColor);
+      html += checkbox(el.id, 'showDayName', 'Show Day Name', el.showDayName);
       html += checkbox(el.id, 'showYear', 'Show Year', el.showYear);
       html += checkbox(el.id, 'showWeek', 'Show Week', el.showWeek);
       html += checkbox(el.id, 'showMonthDay', 'Show Date', el.showMonthDay);
       html += checkbox(el.id, 'autoSize', 'Auto-size to text', el.autoSize);
+      break;
+    case 'spine':
+      html += `<button class="small" style="width:100%;margin-bottom:10px;" onclick="refreshSpine(${el.id})">Refresh to Today</button>`;
+      html += textInput(el.id, 'spineText', 'Spine Text', el.spineText);
+      html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 4, 14);
+      html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily, [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif'],['typewriter','Typewriter']]);
+      html += colorPick(el.id, 'textColor', 'Color', el.textColor);
+      break;
+    case 'custom-list':
+      html += `<div style="margin-bottom:8px;">
+        <div class="control-label" style="margin-bottom:4px;">Items</div>
+        <div style="display:flex;flex-direction:column;gap:3px;max-height:200px;overflow-y:auto;" id="custom-list-items">`;
+      el.items.forEach((item, i) => {
+        html += `<div style="display:flex;gap:3px;align-items:center;">
+          <input type="text" value="${escapeHtml(item)}" data-prop-id="item-${i}" style="flex:1;font-size:11px;padding:3px 5px;" oninput="updateListItem(${el.id},${i},this.value)">
+          <button class="small danger" style="padding:2px 5px;font-size:10px;min-width:0;" onclick="removeListItem(${el.id},${i})">×</button>
+        </div>`;
+      });
+      html += `</div>
+        <div style="display:flex;gap:4px;margin-top:4px;">
+          <button class="small" style="flex:1" onclick="addListItem(${el.id})">+ Add Item</button>
+        </div>
+      </div>`;
+      html += `<div style="display:flex;gap:4px;margin-bottom:8px;">
+        <button class="small" style="flex:1" onclick="showSaveListDialog(${el.id})">Save List</button>
+        <button class="small" style="flex:1" onclick="showLoadListDialog(${el.id})">Load List</button>
+      </div>`;
+      html += selectControl(el.id, 'listStyle', 'Style', el.listStyle, [['checkbox','Checkbox'],['numbered','Numbered'],['bullet','Bullet'],['plain','Plain']]);
+      html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 24);
+      html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily, [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif'],['typewriter','Typewriter']]);
+      if (el.listStyle === 'checkbox') {
+        html += slider(el.id, 'boxSize', 'Box Size', el.boxSize, 6, 20);
+        html += colorPick(el.id, 'boxColor', 'Box Color', el.boxColor);
+      }
+      html += checkbox(el.id, 'lineAfter', 'Line After Text', el.lineAfter);
+      if (el.lineAfter) {
+        html += slider(el.id, 'lineWidth', 'Line Width', el.lineWidth, 20, 300);
+        html += slider(el.id, 'lineWeight', 'Line Weight', el.lineWeight, 0.2, 3, 0.1);
+        html += colorPick(el.id, 'lineColor', 'Line Color', el.lineColor);
+      }
+      html += colorPick(el.id, 'textColor', 'Text Color', el.textColor);
+      break;
+    case 'image':
+      html += `<button class="small primary" style="width:100%;margin-bottom:10px;" onclick="uploadImage(${el.id})">
+        ${el.imgData ? 'Replace Image' : 'Upload Image'}
+      </button>`;
+      html += selectControl(el.id, 'imgFit', 'Fit', el.imgFit, [['contain','Contain'],['cover','Cover'],['stretch','Stretch']]);
       break;
     case 'separator':
       html += slider(el.id, 'sepWeight', 'Weight', el.sepWeight, 0.5, 6, 0.5);
@@ -1450,10 +1742,16 @@ function selectControl(id, prop, label, value, options) {
   </div>`;
 }
 
-function updateProp(id, prop, value) {
+function getLinkedElements(id) {
   const el = elements.find(e => e.id === id);
-  if (el) {
-    el[prop] = value;
+  if (!el || selectedPanels.size <= 1) return [el].filter(Boolean);
+  return elements.filter(e => e.type === el.type && selectedPanels.has(e.panel));
+}
+
+function updateProp(id, prop, value) {
+  const linked = getLinkedElements(id);
+  linked.forEach(el => { el[prop] = value; });
+  if (linked.length) {
     renderCanvasElements();
     renderProperties();
   }
@@ -1461,22 +1759,450 @@ function updateProp(id, prop, value) {
 
 // Special handler for text inputs — only re-renders canvas, not the properties panel
 function updatePropText(id, prop, inputEl) {
-  const el = elements.find(e => e.id === id);
-  if (el) {
-    el[prop] = inputEl.value;
+  const linked = getLinkedElements(id);
+  linked.forEach(el => { el[prop] = inputEl.value; });
+  if (linked.length) {
     renderCanvasElements();
   }
+}
+
+function refreshSpine(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  const info = formatDateInfo();
+  el.spineText = `${info.month} ${info.day}, ${info.year} · Week ${info.week} of ${info.totalWeeks}`;
+  renderCanvasElements();
+  renderProperties();
 }
 
 function refreshDate(id) {
   const el = elements.find(e => e.id === id);
   if (!el) return;
-  const dateInfo = formatDateInfo();
+  const panelDate = el.panel >= 2 ? formatDateForPanel(el.panel) : null;
+  const dateInfo = panelDate || formatDateInfo();
   el.dateYear = String(dateInfo.year);
   el.dateWeek = `Week ${dateInfo.week} of ${dateInfo.totalWeeks}`;
   el.dateMonthDay = `${dateInfo.month} ${dateInfo.day}`;
+  el.dateDayName = dateInfo.dayName;
+  snapDateUpperRight(el);
   renderCanvasElements();
   renderProperties();
+}
+
+// ══════════════════════════════════════
+// CUSTOM LIST HELPERS
+// ══════════════════════════════════════
+function updateListItem(id, index, value) {
+  const linked = getLinkedElements(id);
+  linked.forEach(el => { if (el.items && el.items[index] !== undefined) el.items[index] = value; });
+  if (linked.length) renderCanvasElements();
+}
+
+function addListItem(id) {
+  const linked = getLinkedElements(id);
+  linked.forEach(el => { if (el.items) el.items.push('New item'); });
+  if (linked.length) { renderCanvasElements(); renderProperties(); }
+}
+
+function removeListItem(id, index) {
+  const linked = getLinkedElements(id);
+  linked.forEach(el => { if (el.items && el.items.length > 1) el.items.splice(index, 1); });
+  if (linked.length) { renderCanvasElements(); renderProperties(); }
+}
+
+const BUILTIN_LIST_TEMPLATES = [
+  {
+    name: 'Huberman Morning Protocol',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake up (no snooze)',
+      'Get sunlight exposure (10 min)',
+      'Delay caffeine 90-120 min',
+      'Cold shower / cold exposure',
+      'Hydrate — water + electrolytes',
+      'Morning walk (optic flow)',
+      'Focused breathing (5 min)',
+      'Journaling / intention setting',
+      'High-protein breakfast',
+      'Deep work block (90 min)',
+      'Movement / exercise',
+      'NSDR or yoga nidra (10-20 min)',
+    ]
+  },
+  {
+    name: 'Slow Morning',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake up naturally — no alarm',
+      'Stay in bed, stretch gently',
+      'Make coffee or tea slowly',
+      'Sit by a window — watch the light',
+      'Read a few pages of a book',
+      'Write in journal (no phone yet)',
+      'Eat a slow, proper breakfast',
+      'Light stretch or gentle yoga',
+      'Take a short walk outside',
+      'Set one intention for the day',
+    ]
+  },
+  {
+    name: 'Calm Morning',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake gently — deep breaths in bed',
+      'Gratitude — 3 things',
+      'Meditation (10-15 min)',
+      'Herbal tea or warm lemon water',
+      'Body scan / gentle stretching',
+      'Tidy one small space',
+      'Nourishing breakfast',
+      'Read or listen to something uplifting',
+      'Plan the day with calm intention',
+      'Step outside — fresh air (5 min)',
+    ]
+  },
+  {
+    name: "Hustler's Morning",
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Alarm at 5:00 — feet on floor',
+      'Cold water on face',
+      'Review goals + affirmations',
+      'Workout (30-45 min)',
+      'Cold shower',
+      'High-protein meal prep breakfast',
+      'Review calendar + top 3 priorities',
+      'Clear inbox to zero',
+      'First deep work sprint (60 min)',
+      'Check metrics / KPIs',
+      'Outreach — 5 messages sent',
+      'Content creation block',
+    ]
+  },
+  {
+    name: 'Deep Work Morning',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake up — no phone for 30 min',
+      'Light breakfast + water',
+      'Review today\'s focus project',
+      'Set a 90-min deep work timer',
+      'Phone on airplane mode',
+      'Close all tabs except work',
+      'Deep work session #1',
+      'Short break — walk or stretch',
+      'Deep work session #2 (60 min)',
+      'Capture notes + progress log',
+      'Check messages (first time)',
+    ]
+  },
+  {
+    name: '75 Hard — Daily Checklist',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Follow diet — no cheats, no alcohol',
+      'Workout #1 — 45 min (outdoor)',
+      'Workout #2 — 45 min (indoor)',
+      'Drink 1 gallon of water',
+      'Read 10 pages (nonfiction, no audio)',
+      'Take progress photo',
+    ]
+  },
+  {
+    name: 'Miracle Morning (Hal Elrod)',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Silence — meditate or pray (5-10 min)',
+      'Affirmations — read aloud',
+      'Visualization — see your goals',
+      'Exercise — move your body (20 min)',
+      'Reading — something inspiring (10 min)',
+      'Scribing — journal or write (10 min)',
+    ]
+  },
+  {
+    name: 'Tim Ferriss Morning',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake up — get out of bed immediately',
+      'Make the bed',
+      'Meditation (10-20 min)',
+      'Exercise — push-ups or movement',
+      'Cold shower',
+      'Make Titanium Tea or coffee',
+      'Journal — gratitude or problem-solving',
+      'Review top 3 priorities for the day',
+    ]
+  },
+  {
+    name: 'Tony Robbins Priming',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake up — no snooze',
+      'Hot lemon water or celery juice',
+      'Cold plunge or cold shower',
+      'Breathing exercise (3 sets of 30)',
+      'Gratitude — 3 moments (3 min)',
+      'Visualization — blessing & strength',
+      'Focus on 3 outcomes for today',
+      'Exercise / movement (30 min)',
+      'Healthy high-energy breakfast',
+    ]
+  },
+  {
+    name: '5AM Club (Robin Sharma)',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Wake at 5:00 AM — no phone',
+      'Move — intense exercise (20 min)',
+      'Sweat — get your heart rate up',
+      'Reflect — meditate or journal (20 min)',
+      'Set intentions for the day',
+      'Learn — read or study (20 min)',
+      'Review goals and growth plan',
+    ]
+  },
+  {
+    name: 'Jocko Willink Discipline',
+    listStyle: 'checkbox',
+    builtin: true,
+    items: [
+      'Alarm at 4:30 — no negotiation',
+      'Lay out gym clothes night before',
+      'Get up — don\'t think, execute',
+      'Workout — pull/push/lift/squat',
+      'Core work',
+      'Cardio',
+      'Cold shower or cold exposure',
+      'Review to-do list (written last night)',
+      'Attack the hardest task first',
+    ]
+  },
+];
+
+function showListPicker(e) {
+  e.stopPropagation();
+  const container = document.getElementById('list-picker-container');
+
+  // Toggle off if already open
+  if (container.querySelector('.list-picker')) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const userTemplates = getListTemplates();
+  let html = '<div class="list-picker">';
+
+  // Blank option
+  html += '<div class="list-picker-item" onclick="addElement(\'custom-list\'); closeListPicker();">✎ Blank List<span class="lp-count">16 items</span></div>';
+  html += '<div class="list-picker-divider"></div>';
+
+  // Built-in templates
+  html += '<div class="list-picker-title">Presets</div>';
+  BUILTIN_LIST_TEMPLATES.forEach((t, i) => {
+    html += `<div class="list-picker-item" onclick="addListFromTemplate(${i}, true); closeListPicker();">
+      ${escapeHtml(t.name)}<span class="lp-count">${t.items.length}</span>
+    </div>`;
+  });
+
+  // User templates
+  if (userTemplates.length > 0) {
+    html += '<div class="list-picker-divider"></div>';
+    html += '<div class="list-picker-title">Your Lists</div>';
+    userTemplates.forEach((t, i) => {
+      html += `<div class="list-picker-item" onclick="addListFromTemplate(${i}, false); closeListPicker();">
+        ${escapeHtml(t.name)}<span class="lp-count">${t.items.length}</span>
+      </div>`;
+    });
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+
+  // Close on outside click
+  const closer = (evt) => {
+    if (!container.contains(evt.target)) {
+      container.innerHTML = '';
+      document.removeEventListener('mousedown', closer);
+    }
+  };
+  setTimeout(() => document.addEventListener('mousedown', closer), 0);
+}
+
+function closeListPicker() {
+  document.getElementById('list-picker-container').innerHTML = '';
+}
+
+function addListFromTemplate(index, isBuiltin) {
+  const t = isBuiltin ? BUILTIN_LIST_TEMPLATES[index] : getListTemplates()[index];
+  if (!t) return;
+
+  // Add a custom-list element then apply the template items
+  addElement('custom-list');
+
+  // Find the just-added element(s) and apply template
+  const justAdded = elements.filter(el => el.type === 'custom-list').slice(-Math.max(selectedPanels.size, 1));
+  justAdded.forEach(el => {
+    el.items = [...t.items];
+    if (t.listStyle) el.listStyle = t.listStyle;
+  });
+
+  renderCanvasElements();
+  renderProperties();
+  toast(`Added "${t.name}"`);
+}
+
+function getListTemplates() {
+  try { return JSON.parse(localStorage.getItem('zine-list-templates') || '[]'); }
+  catch { return []; }
+}
+
+function saveListTemplates(templates) {
+  localStorage.setItem('zine-list-templates', JSON.stringify(templates));
+}
+
+function showSaveListDialog(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  const name = prompt('Save list as:');
+  if (!name || !name.trim()) return;
+  const templates = getListTemplates();
+  templates.push({ name: name.trim(), items: [...el.items], listStyle: el.listStyle });
+  saveListTemplates(templates);
+  toast(`List "${name.trim()}" saved`);
+}
+
+function showLoadListDialog(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  const userTemplates = getListTemplates();
+  const allTemplates = [...BUILTIN_LIST_TEMPLATES, ...userTemplates];
+
+  const container = document.getElementById('modal-container');
+  let listHtml = '';
+
+  if (BUILTIN_LIST_TEMPLATES.length > 0) {
+    listHtml += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:4px;margin-top:4px;">Built-in Templates</div>';
+    BUILTIN_LIST_TEMPLATES.forEach((t, i) => {
+      listHtml += `<div class="template-item" onclick="loadBuiltinList(${id},${i})">
+        <span class="t-name">${escapeHtml(t.name)}</span>
+        <span class="t-date">${t.items.length} items · ${t.listStyle || 'checkbox'}</span>
+      </div>`;
+    });
+  }
+
+  if (userTemplates.length > 0) {
+    listHtml += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-dim);margin-bottom:4px;margin-top:10px;">Your Templates</div>';
+    userTemplates.forEach((t, i) => {
+      listHtml += `<div class="template-item" onclick="loadListTemplate(${id},${i})">
+        <span class="t-name">${escapeHtml(t.name)}</span>
+        <span class="t-date">${t.items.length} items · ${t.listStyle || 'checkbox'}</span>
+        <span class="t-actions">
+          <button class="small danger" onclick="event.stopPropagation(); deleteListTemplate(${id},${i})">×</button>
+        </span>
+      </div>`;
+    });
+  }
+
+  if (allTemplates.length === 0) {
+    listHtml = '<div class="empty-state">No saved lists yet.</div>';
+  }
+
+  container.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Load List Template</h3>
+        <div style="max-height:350px;overflow-y:auto;">${listHtml}</div>
+        <div class="modal-actions"><button onclick="closeModal()">Close</button></div>
+      </div>
+    </div>`;
+}
+
+function loadBuiltinList(id, index) {
+  const el = elements.find(e => e.id === id);
+  const t = BUILTIN_LIST_TEMPLATES[index];
+  if (el && t) {
+    el.items = [...t.items];
+    if (t.listStyle) el.listStyle = t.listStyle;
+    closeModal();
+    renderCanvasElements();
+    renderProperties();
+    toast(`Loaded "${t.name}"`);
+  }
+}
+
+function loadListTemplate(id, index) {
+  const el = elements.find(e => e.id === id);
+  const templates = getListTemplates();
+  if (el && templates[index]) {
+    el.items = [...templates[index].items];
+    if (templates[index].listStyle) el.listStyle = templates[index].listStyle;
+    closeModal();
+    renderCanvasElements();
+    renderProperties();
+    toast(`Loaded "${templates[index].name}"`);
+  }
+}
+
+function deleteListTemplate(id, index) {
+  const templates = getListTemplates();
+  const name = templates[index].name;
+  if (!confirm(`Delete list "${name}"?`)) return;
+  templates.splice(index, 1);
+  saveListTemplates(templates);
+  toast(`Deleted "${name}"`);
+  showLoadListDialog(id);
+}
+
+function addImageElement() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      addElement('image');
+      // Apply image data to the just-added element(s)
+      const justAdded = elements.filter(el => el.type === 'image').slice(-Math.max(selectedPanels.size, 1));
+      justAdded.forEach(el => { el.imgData = ev.target.result; });
+      renderCanvasElements();
+      renderProperties();
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function uploadImage(id) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const linked = getLinkedElements(id);
+      linked.forEach(el => { el.imgData = ev.target.result; });
+      renderCanvasElements();
+      renderProperties();
+      toast('Image updated');
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
 }
 
 function snapToPanel(id, panelIdx) {
@@ -1714,7 +2440,7 @@ function exportPDF() {
 
   printWin.document.write(`<!DOCTYPE html>
 <html><head><title>Zine Layout</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&family=Special+Elite&display=swap" rel="stylesheet">
 <style>
   @page { size: ${pageW} ${pageH}; margin: 0; }
   * { margin: 0; padding: 0; }
