@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zine Layout Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --bg-dark: #e8e0d0;
+    --ink: #1a1a18;
+    --ink-light: #6b6560;
+    --accent: #c23c2a;
+    --accent-hover: #a83220;
+    --panel-bg: #faf8f4;
+    --border: #c8c0b4;
+    --border-dark: #9a9288;
+    --shadow: rgba(26, 26, 24, 0.08);
+    --mono: 'DM Mono', 'Courier New', monospace;
+    --serif: 'Instrument Serif', Georgia, serif;
+    --radius: 3px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--panel-bg);
+  }
+
+  .logo {
+    font-family: var(--serif);
+    font-size: 22px;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .logo span {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-light);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  button, .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 12px;
+    border: 1.5px solid var(--ink);
+    background: var(--panel-bg);
+    color: var(--ink);
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.1s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  button:hover { background: var(--ink); color: var(--panel-bg); }
+
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  button.small { padding: 3px 8px; font-size: 10px; }
+  button.danger { border-color: var(--accent); color: var(--accent); }
+  button.danger:hover { background: var(--accent); color: #fff; }
+
+  .app {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    height: calc(100vh - 49px);
+  }
+
+  .sidebar {
+    border-right: 2px solid var(--ink);
+    background: var(--panel-bg);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 6px; }
+  .sidebar::-webkit-scrollbar-track { background: var(--bg-dark); }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+  .sidebar-section {
+    border-bottom: 1px solid var(--border);
+    padding: 14px 16px;
+  }
+
+  .sidebar-section:last-child { border-bottom: none; }
+
+  .section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--ink-light);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .element-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .element-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 6px;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .element-btn:hover {
+    border-color: var(--ink);
+    background: var(--panel-bg);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px var(--shadow);
+  }
+
+  .element-btn svg { width: 28px; height: 28px; stroke: var(--ink); fill: none; stroke-width: 1.5; }
+
+  .control-group { margin-bottom: 10px; }
+  .control-group:last-child { margin-bottom: 0; }
+
+  .control-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  .control-label .value {
+    color: var(--ink-light);
+    font-size: 10px;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  input[type="number"], input[type="text"] {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 100%;
+    padding: 5px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+  }
+
+  input[type="number"]:focus, input[type="text"]:focus { border-color: var(--ink); }
+
+  select {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 100%;
+    padding: 5px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+    cursor: pointer;
+  }
+
+  select:focus { border-color: var(--ink); }
+
+  .checkbox-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+
+  .checkbox-control input[type="checkbox"] {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid var(--border-dark);
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .checkbox-control input[type="checkbox"]:checked {
+    background: var(--ink);
+    border-color: var(--ink);
+  }
+
+  .checkbox-control input[type="checkbox"]:checked::after {
+    content: '✓';
+    position: absolute;
+    top: -1px;
+    left: 2px;
+    font-size: 10px;
+    color: #fff;
+  }
+
+  .inline-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .element-list { display: flex; flex-direction: column; gap: 4px; }
+
+  .element-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.1s;
+    font-size: 11px;
+  }
+
+  .element-item:hover { border-color: var(--border-dark); }
+  .element-item.selected { border-color: var(--accent); background: #fef6f5; }
+
+  .element-item .type-badge {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 1px 5px;
+    background: var(--border);
+    border-radius: 2px;
+    color: var(--ink-light);
+  }
+
+  .element-item.selected .type-badge { background: var(--accent); color: #fff; }
+  .element-item .el-name { flex: 1; }
+  .element-item .el-panel { color: var(--ink-light); font-size: 10px; }
+
+  .element-item .remove-btn {
+    opacity: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 2px;
+    transition: opacity 0.1s;
+  }
+
+  .element-item:hover .remove-btn { opacity: 1; }
+
+  .canvas-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--bg);
+    overflow: auto;
+    position: relative;
+  }
+
+  .canvas-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .canvas-toolbar .zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .canvas-toolbar .zoom-label {
+    font-size: 10px;
+    color: var(--ink-light);
+    min-width: 36px;
+    text-align: center;
+  }
+
+  .paper-wrapper {
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06);
+  }
+
+  .paper {
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fold-lines {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .fold-line {
+    position: absolute;
+    background: repeating-linear-gradient(90deg, #000 0px, #000 1.5px, transparent 1.5px, transparent 6px);
+  }
+
+  .fold-line.horizontal { width: 100%; height: 1px; }
+
+  .fold-line.vertical {
+    height: 100%; width: 1px;
+    background: repeating-linear-gradient(0deg, #000 0px, #000 1.5px, transparent 1.5px, transparent 6px);
+  }
+
+  .cut-line {
+    position: absolute;
+    height: 1px;
+    background: repeating-linear-gradient(90deg, #e44 0px, #e44 6px, transparent 6px, transparent 10px);
+    z-index: 11;
+    pointer-events: none;
+  }
+
+  .cut-label {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 8px;
+    color: #e44;
+    z-index: 12;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .panel-number {
+    position: absolute;
+    font-family: var(--mono);
+    font-size: 9px;
+    color: #000;
+    z-index: 11;
+    pointer-events: none;
+    padding: 3px 5px;
+  }
+
+  .canvas-element {
+    position: absolute;
+    cursor: move;
+    z-index: 5;
+  }
+
+  .canvas-element.selected {
+    outline: 1.5px dashed var(--accent);
+    outline-offset: 2px;
+  }
+
+  .canvas-element .resize-handle {
+    position: absolute;
+    bottom: -4px; right: -4px;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: nwse-resize;
+    display: none;
+    z-index: 20;
+  }
+
+  .canvas-element.selected .resize-handle { display: block; }
+
+  .panel-selector {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 3px;
+    width: 100%;
+    aspect-ratio: 11/8.5;
+  }
+
+  .panel-selector .panel-cell {
+    border: 1.5px solid var(--border);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: var(--ink-light);
+    cursor: pointer;
+    transition: all 0.1s;
+    background: var(--bg);
+    user-select: none;
+  }
+
+  .panel-selector .panel-cell:hover { border-color: var(--ink); color: var(--ink); }
+  .panel-selector .panel-cell.active { border-color: var(--accent); background: #fef6f5; color: var(--accent); }
+
+  .orientation-toggle {
+    display: flex;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .orientation-toggle button {
+    border: none; border-radius: 0;
+    padding: 5px 10px; font-size: 10px;
+  }
+
+  .orientation-toggle button.active { background: var(--ink); color: var(--panel-bg); }
+  .orientation-toggle button + button { border-left: 1.5px solid var(--border); }
+
+  /* Template dialog */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 500;
+  }
+
+  .modal {
+    background: var(--panel-bg);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 20px;
+    min-width: 360px;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
+    font-family: var(--mono);
+  }
+
+  .modal h3 {
+    font-family: var(--serif);
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+
+  .modal .template-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .modal .template-item:hover { border-color: var(--ink); background: var(--bg); }
+
+  .modal .template-item .t-name { flex: 1; font-size: 12px; }
+  .modal .template-item .t-date { font-size: 10px; color: var(--ink-light); margin-right: 8px; }
+  .modal .template-item .t-actions { display: flex; gap: 4px; }
+
+  .modal .modal-actions { display: flex; gap: 8px; margin-top: 12px; justify-content: flex-end; }
+
+  .toast {
+    position: fixed;
+    bottom: 20px; right: 20px;
+    background: var(--ink);
+    color: var(--panel-bg);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    font-family: var(--mono);
+    font-size: 11px;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .empty-state {
+    text-align: center;
+    padding: 20px;
+    color: var(--ink-light);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .empty-state .arrow { font-size: 20px; display: block; margin-bottom: 6px; }
+
+  @media print {
+    header, .sidebar, .canvas-toolbar, .fold-lines, .panel-number,
+    .resize-handle, .canvas-element.selected { outline: none !important; }
+    .app { display: block; }
+    .canvas-area { padding: 0; background: #fff; }
+    .paper-wrapper { box-shadow: none; margin: 0; }
+    .paper { width: 11in !important; height: 8.5in !important; }
+    .fold-lines, .panel-number { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    Zine Layout Studio
+    <span>8.5 × 11 / 8-panel</span>
+  </div>
+  <div class="header-actions">
+    <div class="orientation-toggle">
+      <button class="active" onclick="setOrientation('landscape')" id="btn-landscape">Landscape</button>
+      <button onclick="setOrientation('portrait')" id="btn-portrait">Portrait</button>
+    </div>
+    <button onclick="toggleFoldLines()" id="btn-folds">Folds: On</button>
+    <button onclick="clearAll()" class="danger">Clear All</button>
+    <button onclick="showTemplateDialog()">Templates</button>
+    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text-dim);">
+      <select id="batch-mode" style="font-size:11px;padding:2px 4px;background:var(--bg-2);color:var(--text);border:1px solid var(--border);border-radius:4px;">
+        <option value="single">Single</option>
+        <option value="weekly">Weekly</option>
+        <option value="daily">Daily</option>
+      </select>
+      <span id="batch-count-wrap" style="display:none;">
+        ×<input type="number" id="batch-count" value="4" min="2" max="52" style="width:36px;font-size:11px;padding:2px;background:var(--bg-2);color:var(--text);border:1px solid var(--border);border-radius:4px;text-align:center;">
+      </span>
+    </span>
+    <button class="primary" onclick="exportPDF()">Save / Print PDF</button>
+  </div>
+</header>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="section-title">Add Element</div>
+      <div class="element-grid">
+        <div class="element-btn" onclick="addElement('h-lines')">
+          <svg viewBox="0 0 28 28"><line x1="4" y1="8" x2="24" y2="8"/><line x1="4" y1="14" x2="24" y2="14"/><line x1="4" y1="20" x2="24" y2="20"/></svg>
+          H-Lines
+        </div>
+        <div class="element-btn" onclick="addElement('v-lines')">
+          <svg viewBox="0 0 28 28"><line x1="8" y1="4" x2="8" y2="24"/><line x1="14" y1="4" x2="14" y2="24"/><line x1="20" y1="4" x2="20" y2="24"/></svg>
+          V-Lines
+        </div>
+        <div class="element-btn" onclick="addElement('h-graph')">
+          <svg viewBox="0 0 28 28"><line x1="4" y1="7" x2="24" y2="7"/><line x1="4" y1="11" x2="24" y2="11"/><line x1="4" y1="15" x2="24" y2="15"/><line x1="4" y1="19" x2="24" y2="19"/><line x1="4" y1="23" x2="24" y2="23"/><line x1="8" y1="4" x2="8" y2="24" stroke-dasharray="1,2"/></svg>
+          H-Graph
+        </div>
+        <div class="element-btn" onclick="addElement('v-graph')">
+          <svg viewBox="0 0 28 28"><line x1="7" y1="4" x2="7" y2="24"/><line x1="11" y1="4" x2="11" y2="24"/><line x1="15" y1="4" x2="15" y2="24"/><line x1="19" y1="4" x2="19" y2="24"/><line x1="23" y1="4" x2="23" y2="24"/><line x1="4" y1="8" x2="24" y2="8" stroke-dasharray="1,2"/></svg>
+          V-Graph
+        </div>
+        <div class="element-btn" onclick="addElement('grid')">
+          <svg viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="0"/><line x1="4" y1="9" x2="24" y2="9"/><line x1="4" y1="14" x2="24" y2="14"/><line x1="4" y1="19" x2="24" y2="19"/><line x1="9" y1="4" x2="9" y2="24"/><line x1="14" y1="4" x2="14" y2="24"/><line x1="19" y1="4" x2="19" y2="24"/></svg>
+          Grid
+        </div>
+        <div class="element-btn" onclick="addElement('dots')">
+          <svg viewBox="0 0 28 28"><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="20" cy="8" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="14" r="1.2" fill="currentColor" stroke="none"/><circle cx="20" cy="14" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="14" cy="20" r="1.2" fill="currentColor" stroke="none"/><circle cx="20" cy="20" r="1.2" fill="currentColor" stroke="none"/></svg>
+          Dots
+        </div>
+        <div class="element-btn" onclick="addElement('checkboxes')">
+          <svg viewBox="0 0 28 28"><rect x="4" y="5" width="6" height="6" rx="1"/><line x1="13" y1="8" x2="24" y2="8"/><rect x="4" y="14" width="6" height="6" rx="1"/><line x1="13" y1="17" x2="24" y2="17"/></svg>
+          Checkboxes
+        </div>
+        <div class="element-btn" onclick="addElement('numbers')">
+          <svg viewBox="0 0 28 28"><text x="4" y="12" font-size="8" fill="currentColor" stroke="none" font-family="monospace">1.</text><line x1="13" y1="10" x2="24" y2="10"/><text x="4" y="22" font-size="8" fill="currentColor" stroke="none" font-family="monospace">2.</text><line x1="13" y1="20" x2="24" y2="20"/></svg>
+          Numbers
+        </div>
+        <div class="element-btn" onclick="addElement('text')">
+          <svg viewBox="0 0 28 28"><text x="5" y="18" font-size="14" fill="currentColor" stroke="none" font-family="serif" font-weight="bold">Aa</text></svg>
+          Text
+        </div>
+        <div class="element-btn" onclick="addElement('border')">
+          <svg viewBox="0 0 28 28"><rect x="4" y="4" width="20" height="20" rx="1" stroke-dasharray="3,2"/></svg>
+          Border
+        </div>
+        <div class="element-btn" onclick="addElement('date-header')">
+          <svg viewBox="0 0 28 28"><text x="3" y="11" font-size="7" fill="currentColor" stroke="none" font-family="monospace">2026</text><text x="3" y="19" font-size="6" fill="currentColor" stroke="none" font-family="monospace">W10</text><text x="3" y="26" font-size="5.5" fill="currentColor" stroke="none" font-family="monospace">Mar 8</text></svg>
+          Date
+        </div>
+        <div class="element-btn" onclick="addElement('separator')">
+          <svg viewBox="0 0 28 28"><line x1="4" y1="14" x2="24" y2="14" stroke-width="2"/></svg>
+          Divider
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">Target Panels <span style="font-size:9px;color:var(--ink-light)">(click to toggle)</span></div>
+      <div class="panel-selector" id="panel-selector"></div>
+      <label class="checkbox-control" style="margin-top: 8px;">
+        <input type="checkbox" id="snap-to-panel" checked>
+        Snap new elements to selected panels
+      </label>
+    </div>
+
+    <div class="sidebar-section" id="properties-section" style="display:none;">
+      <div class="section-title">
+        Properties
+        <button class="small" onclick="duplicateSelected()">Duplicate</button>
+      </div>
+      <div id="properties-panel"></div>
+    </div>
+
+    <div class="sidebar-section" style="flex:1; min-height: 0;">
+      <div class="section-title">
+        Elements
+        <span id="element-count">0</span>
+      </div>
+      <div class="element-list" id="element-list">
+        <div class="empty-state">
+          <span class="arrow">↑</span>
+          Click an element type above<br>to add it to the canvas
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="canvas-area" id="canvas-area">
+    <div class="canvas-toolbar">
+      <div class="zoom-controls">
+        <button class="small" onclick="setZoom(zoom - 0.1)">−</button>
+        <span class="zoom-label" id="zoom-label">85%</span>
+        <button class="small" onclick="setZoom(zoom + 0.1)">+</button>
+        <button class="small" onclick="setZoom(1)">Reset</button>
+      </div>
+    </div>
+    <div class="paper-wrapper" id="paper-wrapper">
+      <div class="paper" id="paper">
+        <div class="fold-lines" id="fold-lines"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="modal-container"></div>
+
+<script>
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let orientation = 'landscape';
+let zoom = 0.85;
+let showFolds = true;
+let selectedPanels = new Set(); // empty = all/free placement
+let selectedElementId = null;
+let elements = [];
+let nextId = 1;
+let dragState = null;
+
+const DPI = 96;
+const PAPER = {
+  landscape: { w: 11 * DPI, h: 8.5 * DPI },
+  portrait: { w: 8.5 * DPI, h: 11 * DPI }
+};
+
+// Zine fold layout on flat sheet:
+//   Top row (L→R): 7↓  6↓  5↓  4↓   (upside down)
+//   Bot row (L→R): 8   1   2   3     (right side up)
+const PANEL_GRID = {
+  // panel number → { col, row }
+  1: { col: 1, row: 1 },
+  2: { col: 2, row: 1 },
+  3: { col: 3, row: 1 },
+  4: { col: 3, row: 0 },
+  5: { col: 2, row: 0 },
+  6: { col: 1, row: 0 },
+  7: { col: 0, row: 0 },
+  8: { col: 0, row: 1 },
+};
+
+const FLIPPED_PANELS = new Set([4, 5, 6, 7]);
+
+function isPanelFlipped(panelIndex) {
+  return FLIPPED_PANELS.has(panelIndex);
+}
+
+function getPanelBounds(panelIndex) {
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+  const cw = pw / 4, ch = ph / 2;
+  const g = PANEL_GRID[panelIndex];
+  if (!g) return { x: 0, y: 0, w: cw, h: ch };
+  return { x: g.col * cw, y: g.row * ch, w: cw, h: ch };
+}
+
+// ══════════════════════════════════════
+// DATE HELPERS
+// ══════════════════════════════════════
+function getWeekNumber(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+}
+
+function getOrdinalSuffix(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
+
+function formatDateInfo(date) {
+  const d = date || new Date();
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return {
+    year: d.getFullYear(),
+    week: getWeekNumber(d),
+    totalWeeks: 52,
+    month: months[d.getMonth()],
+    day: getOrdinalSuffix(d.getDate()),
+    monthShort: months[d.getMonth()].substring(0, 3),
+  };
+}
+
+function updateDateElements(els, date) {
+  const info = formatDateInfo(date);
+  return els.map(el => {
+    if (el.type !== 'date-header') return el;
+    const copy = { ...el };
+    copy.dateYear = String(info.year);
+    copy.dateWeek = `Week ${info.week} of ${info.totalWeeks}`;
+    copy.dateMonthDay = `${info.month} ${info.day}`;
+    return copy;
+  });
+}
+
+// ══════════════════════════════════════
+// ELEMENT DEFAULTS
+// ══════════════════════════════════════
+function getDefaults(type) {
+  const panels = Array.from(selectedPanels);
+  const hasPanel = panels.length > 0;
+  const panel = hasPanel ? getPanelBounds(panels[0]) : null;
+  const snap = document.getElementById('snap-to-panel').checked && panel;
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+
+  const base = {
+    x: snap ? panel.x + 8 : 20,
+    y: snap ? panel.y + 8 : 20,
+    w: snap ? panel.w - 16 : pw - 40,
+    h: snap ? panel.h - 16 : ph - 40,
+  };
+
+  const dateInfo = formatDateInfo();
+
+  const defaults = {
+    'h-lines': { ...base, lineCount: 12, lineWeight: 0.8, lineColor: '#000000', label: 'H-Lines' },
+    'v-lines': { ...base, lineCount: 8, lineWeight: 0.8, lineColor: '#000000', label: 'V-Lines' },
+    'h-graph': { ...base, lineCount: 20, lineWeight: 0.5, lineColor: '#000000', crossWeight: 0.25, crossColor: '#000000', label: 'H-Graph' },
+    'v-graph': { ...base, lineCount: 15, lineWeight: 0.5, lineColor: '#000000', crossWeight: 0.25, crossColor: '#000000', label: 'V-Graph' },
+    'grid': { ...base, cellSize: 12, lineWeight: 0.5, lineColor: '#000000', label: 'Grid' },
+    'dots': { ...base, dotSpacing: 14, dotSize: 1.2, dotColor: '#000000', label: 'Dots' },
+    'checkboxes': { ...base, count: 16, boxSize: 10, spacing: 20, lineAfter: true, lineWidth: 300, lineWeight: 0.6, lineColor: '#000000', boxColor: '#000000', label: 'Checkboxes' },
+    'numbers': { ...base, count: 16, fontSize: 10, spacing: 20, lineAfter: true, lineWidth: 300, lineWeight: 0.6, lineColor: '#000000', numColor: '#000000', label: 'Numbers' },
+    'text': { ...base, w: 0, h: 0, content: 'Title', fontSize: 16, fontWeight: 'bold', fontFamily: 'serif', textColor: '#000000', textAlign: 'left', autoSize: true, label: 'Text' },
+    'border': { ...base, borderWeight: 1.5, borderColor: '#000000', borderStyle: 'solid', borderRadius: 0, label: 'Border' },
+    'date-header': {
+      x: snap ? panel.x + 6 : 6,
+      y: snap ? panel.y + 4 : 4,
+      w: 0,
+      h: 0,
+      dateYear: String(dateInfo.year),
+      dateWeek: `Week ${dateInfo.week} of ${dateInfo.totalWeeks}`,
+      dateMonthDay: `${dateInfo.month} ${dateInfo.day}`,
+      fontSize: 9,
+      fontFamily: 'mono',
+      textColor: '#000000',
+      showYear: true,
+      showWeek: true,
+      showMonthDay: true,
+      autoSize: true,
+      label: 'Date Header'
+    },
+    'separator': {
+      ...base,
+      h: 3,
+      w: snap ? panel.w - 16 : pw - 40,
+      sepWeight: 1.5,
+      sepColor: '#000000',
+      sepStyle: 'solid',
+      sepDirection: 'horizontal',
+      label: 'Divider'
+    },
+  };
+
+  return defaults[type];
+}
+
+// ══════════════════════════════════════
+// ADD ELEMENT — supports multi-panel
+// ══════════════════════════════════════
+function addElement(type) {
+  const panels = Array.from(selectedPanels);
+  const snap = document.getElementById('snap-to-panel').checked && panels.length > 0;
+
+  if (snap && panels.length > 1) {
+    // Add one element per selected panel
+    let lastId = null;
+    panels.forEach(p => {
+      const savedPanels = new Set(selectedPanels);
+      selectedPanels = new Set([p]);
+      const el = { id: nextId++, type, ...getDefaults(type), panel: p, flipped: isPanelFlipped(p) };
+      elements.push(el);
+      lastId = el.id;
+      selectedPanels = savedPanels;
+    });
+    selectedElementId = lastId;
+    renderAll();
+    toast(`Added ${type} to ${panels.length} panels`);
+  } else {
+    const p = panels.length === 1 ? panels[0] : 0;
+    const el = { id: nextId++, type, ...getDefaults(type), panel: p, flipped: p > 0 && isPanelFlipped(p) };
+    elements.push(el);
+    selectedElementId = el.id;
+    renderAll();
+    toast(`Added ${el.label}`);
+  }
+}
+
+function removeElement(id) {
+  elements = elements.filter(e => e.id !== id);
+  if (selectedElementId === id) selectedElementId = null;
+  renderAll();
+}
+
+function duplicateSelected() {
+  const el = elements.find(e => e.id === selectedElementId);
+  if (!el) return;
+  const dup = { ...el, id: nextId++, x: el.x + 15, y: el.y + 15 };
+  elements.push(dup);
+  selectedElementId = dup.id;
+  renderAll();
+  toast('Duplicated');
+}
+
+function clearAll() {
+  if (elements.length === 0) return;
+  if (!confirm('Clear all elements?')) return;
+  elements = [];
+  selectedElementId = null;
+  renderAll();
+  toast('Cleared');
+}
+
+// ══════════════════════════════════════
+// RENDER PAPER
+// ══════════════════════════════════════
+function renderPaper() {
+  const paper = document.getElementById('paper');
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+  paper.style.width = (pw * zoom) + 'px';
+  paper.style.height = (ph * zoom) + 'px';
+
+  const folds = document.getElementById('fold-lines');
+  folds.innerHTML = '';
+  folds.style.display = showFolds ? 'block' : 'none';
+
+  if (showFolds) {
+    // Horizontal fold lines (left segment: 0-25%, right segment: 75-100%)
+    const hFoldLeft = document.createElement('div');
+    hFoldLeft.className = 'fold-line horizontal';
+    hFoldLeft.style.top = '50%';
+    hFoldLeft.style.left = '0';
+    hFoldLeft.style.width = '25%';
+    folds.appendChild(hFoldLeft);
+
+    const hFoldRight = document.createElement('div');
+    hFoldRight.className = 'fold-line horizontal';
+    hFoldRight.style.top = '50%';
+    hFoldRight.style.left = '75%';
+    hFoldRight.style.width = '25%';
+    folds.appendChild(hFoldRight);
+
+    // Vertical fold lines
+    [25, 50, 75].forEach(pct => {
+      const vFold = document.createElement('div');
+      vFold.className = 'fold-line vertical';
+      vFold.style.left = pct + '%';
+      folds.appendChild(vFold);
+    });
+
+    // Cut line between panels 6/1 and 5/2 (horizontal center, columns 1-2)
+    const cutLine = document.createElement('div');
+    cutLine.className = 'cut-line';
+    cutLine.style.top = '50%';
+    cutLine.style.left = '25%';
+    cutLine.style.width = '50%';
+    folds.appendChild(cutLine);
+
+    const cutLabel = document.createElement('div');
+    cutLabel.className = 'cut-label';
+    cutLabel.textContent = '✂ cut';
+    cutLabel.style.top = '50%';
+    cutLabel.style.left = '25%';
+    cutLabel.style.transform = 'translateY(-12px)';
+    folds.appendChild(cutLabel);
+
+    // Panel numbers
+    for (let i = 1; i <= 8; i++) {
+      const b = getPanelBounds(i);
+      const flipped = isPanelFlipped(i);
+      const num = document.createElement('div');
+      num.className = 'panel-number';
+      num.textContent = i;
+      if (flipped) {
+        num.style.right = ((pw - b.x - b.w) / pw * 100) + '%';
+        num.style.bottom = ((ph - b.y - b.h) / ph * 100) + '%';
+        num.style.left = 'auto';
+        num.style.top = 'auto';
+        num.style.transform = 'rotate(180deg)';
+      } else {
+        num.style.left = (b.x / pw * 100) + '%';
+        num.style.top = (b.y / ph * 100) + '%';
+      }
+      folds.appendChild(num);
+    }
+  }
+}
+
+// ══════════════════════════════════════
+// TEXT MEASUREMENT
+// ══════════════════════════════════════
+const _measureCanvas = document.createElement('canvas');
+const _measureCtx = _measureCanvas.getContext('2d');
+
+function measureText(text, fontSize, fontFamily, fontWeight) {
+  const fam = fontFamily === 'serif' ? "'Instrument Serif', Georgia, serif" :
+              fontFamily === 'mono' ? "'DM Mono', monospace" : "Arial, sans-serif";
+  _measureCtx.font = `${fontWeight || 'normal'} ${fontSize}px ${fam}`;
+  return _measureCtx.measureText(text).width;
+}
+
+function autoSizeElement(el) {
+  if (!el.autoSize) return;
+
+  if (el.type === 'text') {
+    const tw = measureText(el.content, el.fontSize, el.fontFamily, el.fontWeight);
+    el.w = Math.max(20, tw + 8);
+    el.h = el.fontSize * 1.4;
+  }
+
+  if (el.type === 'date-header') {
+    let parts = [];
+    if (el.showYear) parts.push(el.dateYear);
+    if (el.showWeek) parts.push(el.dateWeek);
+    if (el.showMonthDay) parts.push(el.dateMonthDay);
+
+    let maxW = 0;
+    parts.forEach(text => {
+      const tw = measureText(text, el.fontSize, el.fontFamily, 'normal');
+      if (tw > maxW) maxW = tw;
+    });
+
+    el.w = Math.max(20, maxW + 8);
+    el.h = Math.max(20, parts.length * el.fontSize * 1.4 + 4);
+  }
+}
+
+// ══════════════════════════════════════
+// DRAW ELEMENTS
+// ══════════════════════════════════════
+function renderCanvasElements() {
+  const paper = document.getElementById('paper');
+  paper.querySelectorAll('.canvas-element').forEach(el => el.remove());
+
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+
+  elements.forEach(el => {
+    // Auto-size text and date elements to fit their content
+    autoSizeElement(el);
+
+    const div = document.createElement('div');
+    div.className = 'canvas-element' + (el.id === selectedElementId ? ' selected' : '');
+    div.dataset.id = el.id;
+    div.style.left = (el.x / pw * 100) + '%';
+    div.style.top = (el.y / ph * 100) + '%';
+    div.style.width = (el.w / pw * 100) + '%';
+    div.style.height = (el.h / ph * 100) + '%';
+
+    // Rotate 180° if element is in a flipped panel
+    if (el.flipped) {
+      div.style.transform = 'rotate(180deg)';
+    }
+
+    // Date header and text float above borders
+    if (el.type === 'date-header' || el.type === 'text') {
+      div.style.zIndex = '8';
+    }
+
+    const svg = drawElement(el);
+    div.innerHTML = svg;
+
+    const handle = document.createElement('div');
+    handle.className = 'resize-handle';
+    div.appendChild(handle);
+
+    div.addEventListener('mousedown', e => onElementMouseDown(e, el.id));
+    handle.addEventListener('mousedown', e => onResizeMouseDown(e, el.id));
+    paper.appendChild(div);
+  });
+}
+
+function drawElement(el) {
+  const w = el.w, h = el.h;
+
+  switch (el.type) {
+    case 'h-lines': {
+      let lines = '';
+      const gap = h / (el.lineCount + 1);
+      for (let i = 1; i <= el.lineCount; i++) {
+        lines += `<line x1="0" y1="${i * gap}" x2="${w}" y2="${i * gap}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${lines}</svg>`;
+    }
+
+    case 'v-lines': {
+      let lines = '';
+      const gap = w / (el.lineCount + 1);
+      for (let i = 1; i <= el.lineCount; i++) {
+        lines += `<line x1="${i * gap}" y1="0" x2="${i * gap}" y2="${h}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${lines}</svg>`;
+    }
+
+    case 'h-graph': {
+      let lines = '';
+      const gap = h / (el.lineCount + 1);
+      for (let i = 1; i <= el.lineCount; i++) {
+        lines += `<line x1="0" y1="${i * gap}" x2="${w}" y2="${i * gap}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+      }
+      const vCount = Math.floor(w / gap);
+      for (let i = 1; i <= vCount; i++) {
+        lines += `<line x1="${i * gap}" y1="0" x2="${i * gap}" y2="${h}" stroke="${el.crossColor}" stroke-width="${el.crossWeight}"/>`;
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${lines}</svg>`;
+    }
+
+    case 'v-graph': {
+      let lines = '';
+      const gap = w / (el.lineCount + 1);
+      for (let i = 1; i <= el.lineCount; i++) {
+        lines += `<line x1="${i * gap}" y1="0" x2="${i * gap}" y2="${h}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+      }
+      const hCount = Math.floor(h / gap);
+      for (let i = 1; i <= hCount; i++) {
+        lines += `<line x1="0" y1="${i * gap}" x2="${w}" y2="${i * gap}" stroke="${el.crossColor}" stroke-width="${el.crossWeight}"/>`;
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${lines}</svg>`;
+    }
+
+    case 'grid': {
+      let lines = '';
+      const s = el.cellSize;
+      for (let x = s; x < w; x += s) lines += `<line x1="${x}" y1="0" x2="${x}" y2="${h}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+      for (let y = s; y < h; y += s) lines += `<line x1="0" y1="${y}" x2="${w}" y2="${y}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${lines}</svg>`;
+    }
+
+    case 'dots': {
+      let dots = '';
+      const s = el.dotSpacing;
+      for (let x = s; x < w; x += s) for (let y = s; y < h; y += s) dots += `<circle cx="${x}" cy="${y}" r="${el.dotSize}" fill="${el.dotColor}"/>`;
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${dots}</svg>`;
+    }
+
+    case 'checkboxes': {
+      let items = '';
+      const bs = el.boxSize;
+      const actualSpacing = h / el.count;
+      for (let i = 0; i < el.count; i++) {
+        const y = i * actualSpacing + (actualSpacing - bs) / 2;
+        items += `<rect x="0" y="${y}" width="${bs}" height="${bs}" rx="1.5" fill="none" stroke="${el.boxColor}" stroke-width="1.2"/>`;
+        if (el.lineAfter) {
+          items += `<line x1="${bs + 8}" y1="${y + bs}" x2="${bs + 8 + el.lineWidth}" y2="${y + bs}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+        }
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${items}</svg>`;
+    }
+
+    case 'numbers': {
+      let items = '';
+      const actualSpacing = h / el.count;
+      for (let i = 0; i < el.count; i++) {
+        const y = i * actualSpacing + (actualSpacing + el.fontSize) / 2;
+        items += `<text x="0" y="${y}" font-size="${el.fontSize}" font-family="'DM Mono', monospace" fill="${el.numColor}">${i + 1}.</text>`;
+        if (el.lineAfter) {
+          const textW = el.fontSize * 1.8;
+          items += `<line x1="${textW}" y1="${y}" x2="${textW + el.lineWidth}" y2="${y}" stroke="${el.lineColor}" stroke-width="${el.lineWeight}"/>`;
+        }
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">${items}</svg>`;
+    }
+
+    case 'text': {
+      const anchor = el.textAlign === 'center' ? 'middle' : el.textAlign === 'right' ? 'end' : 'start';
+      const tx = el.textAlign === 'center' ? w/2 : el.textAlign === 'right' ? w : 0;
+      const fontFam = el.fontFamily === 'serif' ? "'Instrument Serif', Georgia, serif" :
+                      el.fontFamily === 'mono' ? "'DM Mono', monospace" : "Arial, sans-serif";
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="xMinYMin meet">
+        <text x="${tx}" y="${el.fontSize}" font-size="${el.fontSize}" font-family="${fontFam}" font-weight="${el.fontWeight}" fill="${el.textColor}" text-anchor="${anchor}">${escapeHtml(el.content)}</text>
+      </svg>`;
+    }
+
+    case 'border': {
+      const dash = el.borderStyle === 'dashed' ? `stroke-dasharray="6,3"` :
+                   el.borderStyle === 'dotted' ? `stroke-dasharray="2,2"` : '';
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+        <rect x="${el.borderWeight/2}" y="${el.borderWeight/2}" width="${w - el.borderWeight}" height="${h - el.borderWeight}"
+          rx="${el.borderRadius}" fill="none" stroke="${el.borderColor}" stroke-width="${el.borderWeight}" ${dash}/>
+      </svg>`;
+    }
+
+    case 'date-header': {
+      const fontFam = el.fontFamily === 'serif' ? "'Instrument Serif', Georgia, serif" :
+                      el.fontFamily === 'mono' ? "'DM Mono', monospace" : "Arial, sans-serif";
+      let parts = [];
+      if (el.showYear) parts.push(el.dateYear);
+      if (el.showWeek) parts.push(el.dateWeek);
+      if (el.showMonthDay) parts.push(el.dateMonthDay);
+
+      const lineH = el.fontSize * 1.4;
+      let texts = '';
+      parts.forEach((text, i) => {
+        const y = el.fontSize + i * lineH;
+        texts += `<text x="0" y="${y}" font-size="${el.fontSize}" font-family="${fontFam}" fill="${el.textColor}">${escapeHtml(text)}</text>`;
+      });
+
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="xMinYMin meet">${texts}</svg>`;
+    }
+
+    case 'separator': {
+      const dash = el.sepStyle === 'dashed' ? `stroke-dasharray="6,3"` :
+                   el.sepStyle === 'dotted' ? `stroke-dasharray="2,2"` : '';
+      if (el.sepDirection === 'vertical') {
+        return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+          <line x1="${w/2}" y1="0" x2="${w/2}" y2="${h}" stroke="${el.sepColor}" stroke-width="${el.sepWeight}" ${dash}/>
+        </svg>`;
+      }
+      return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+        <line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="${el.sepColor}" stroke-width="${el.sepWeight}" ${dash}/>
+      </svg>`;
+    }
+
+    default: return '';
+  }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ══════════════════════════════════════
+// PANEL SELECTOR — multi-select
+// ══════════════════════════════════════
+function renderPanelSelector() {
+  const sel = document.getElementById('panel-selector');
+  sel.innerHTML = '';
+  // Display order matches the flat sheet: top row 7,6,5,4 (flipped), bottom row 8,1,2,3
+  const displayOrder = [7, 6, 5, 4, 8, 1, 2, 3];
+  displayOrder.forEach(i => {
+    const flipped = isPanelFlipped(i);
+    const cell = document.createElement('div');
+    cell.className = 'panel-cell' + (selectedPanels.has(i) ? ' active' : '');
+    cell.innerHTML = flipped ? `<span style="display:inline-block;transform:rotate(180deg)">${i}</span> ↓` : String(i);
+    cell.title = `Panel ${i}${flipped ? ' (upside down)' : ''} — click to toggle`;
+    cell.onclick = () => {
+      if (selectedPanels.has(i)) {
+        selectedPanels.delete(i);
+      } else {
+        selectedPanels.add(i);
+      }
+      renderPanelSelector();
+    };
+    sel.appendChild(cell);
+  });
+}
+
+// ══════════════════════════════════════
+// ELEMENT LIST
+// ══════════════════════════════════════
+function renderElementList() {
+  const list = document.getElementById('element-list');
+  document.getElementById('element-count').textContent = elements.length;
+
+  if (elements.length === 0) {
+    list.innerHTML = '<div class="empty-state"><span class="arrow">↑</span>Click an element type above<br>to add it to the canvas</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  elements.forEach(el => {
+    const item = document.createElement('div');
+    item.className = 'element-item' + (el.id === selectedElementId ? ' selected' : '');
+    item.innerHTML = `
+      <span class="type-badge">${el.type}</span>
+      <span class="el-name">${el.label}</span>
+      <span class="el-panel">${el.panel > 0 ? 'P' + el.panel : ''}${el.flipped ? ' ↓' : ''}</span>
+      <span class="remove-btn" onclick="event.stopPropagation(); removeElement(${el.id})">×</span>
+    `;
+    item.onclick = () => { selectedElementId = el.id; renderAll(); };
+    list.appendChild(item);
+  });
+}
+
+// ══════════════════════════════════════
+// PROPERTIES PANEL
+// ══════════════════════════════════════
+function renderProperties() {
+  const section = document.getElementById('properties-section');
+  const panel = document.getElementById('properties-panel');
+  const el = elements.find(e => e.id === selectedElementId);
+
+  if (!el) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  // Save current focus to restore after render
+  const activeEl = document.activeElement;
+  const activeId = activeEl ? activeEl.dataset.propId : null;
+  const selStart = activeEl && activeEl.selectionStart !== undefined ? activeEl.selectionStart : null;
+  const selEnd = activeEl && activeEl.selectionEnd !== undefined ? activeEl.selectionEnd : null;
+
+  let html = '';
+
+  // Position & Size
+  html += `
+    <div class="inline-controls">
+      <div class="control-group">
+        <div class="control-label">X <span class="value">${Math.round(el.x)}</span></div>
+        <input type="range" min="0" max="${PAPER[orientation].w}" value="${el.x}" data-prop-id="x" oninput="updateProp(${el.id},'x',+this.value)">
+      </div>
+      <div class="control-group">
+        <div class="control-label">Y <span class="value">${Math.round(el.y)}</span></div>
+        <input type="range" min="0" max="${PAPER[orientation].h}" value="${el.y}" data-prop-id="y" oninput="updateProp(${el.id},'y',+this.value)">
+      </div>
+    </div>
+    ${el.autoSize ? `<div style="font-size:10px;color:var(--ink-light);margin-bottom:6px;">Size: ${Math.round(el.w)} × ${Math.round(el.h)} (auto)</div>` : `
+    <div class="inline-controls">
+      <div class="control-group">
+        <div class="control-label">Width <span class="value">${Math.round(el.w)}</span></div>
+        <input type="range" min="10" max="${PAPER[orientation].w}" value="${el.w}" data-prop-id="w" oninput="updateProp(${el.id},'w',+this.value)">
+      </div>
+      <div class="control-group">
+        <div class="control-label">Height <span class="value">${Math.round(el.h)}</span></div>
+        <input type="range" min="10" max="${PAPER[orientation].h}" value="${el.h}" data-prop-id="h" oninput="updateProp(${el.id},'h',+this.value)">
+      </div>
+    </div>`}
+  `;
+
+  // Centering buttons
+  html += `<div style="display:flex;gap:4px;margin-bottom:10px;">
+    <button class="small" style="flex:1" onclick="centerElement(${el.id},'h')">Center H</button>
+    <button class="small" style="flex:1" onclick="centerElement(${el.id},'v')">Center V</button>
+    <button class="small" style="flex:1" onclick="centerElement(${el.id},'both')">Center Both</button>
+  </div>`;
+
+  // Flip toggle
+  html += checkbox(el.id, 'flipped', 'Upside Down (180°)', el.flipped);
+
+  const panels = Array.from(selectedPanels);
+  if (panels.length === 1) {
+    html += `<button class="small" style="width:100%;margin-bottom:10px;" onclick="snapToPanel(${el.id},${panels[0]})">Snap to Panel ${panels[0]}</button>`;
+  }
+
+  switch (el.type) {
+    case 'h-lines':
+    case 'v-lines':
+      html += slider(el.id, 'lineCount', 'Line Count', el.lineCount, 1, 60);
+      html += slider(el.id, 'lineWeight', 'Line Weight', el.lineWeight, 0.1, 4, 0.1);
+      html += colorPick(el.id, 'lineColor', 'Line Color', el.lineColor);
+      break;
+    case 'h-graph':
+    case 'v-graph':
+      html += slider(el.id, 'lineCount', 'Primary Lines', el.lineCount, 2, 60);
+      html += slider(el.id, 'lineWeight', 'Primary Weight', el.lineWeight, 0.1, 4, 0.1);
+      html += colorPick(el.id, 'lineColor', 'Primary Color', el.lineColor);
+      html += slider(el.id, 'crossWeight', 'Cross Weight', el.crossWeight, 0.1, 4, 0.1);
+      html += colorPick(el.id, 'crossColor', 'Cross Color', el.crossColor);
+      break;
+    case 'grid':
+      html += slider(el.id, 'cellSize', 'Cell Size', el.cellSize, 4, 40);
+      html += slider(el.id, 'lineWeight', 'Line Weight', el.lineWeight, 0.1, 3, 0.1);
+      html += colorPick(el.id, 'lineColor', 'Line Color', el.lineColor);
+      break;
+    case 'dots':
+      html += slider(el.id, 'dotSpacing', 'Spacing', el.dotSpacing, 4, 40);
+      html += slider(el.id, 'dotSize', 'Dot Size', el.dotSize, 0.3, 4, 0.1);
+      html += colorPick(el.id, 'dotColor', 'Color', el.dotColor);
+      break;
+    case 'checkboxes':
+      html += slider(el.id, 'count', 'Count', el.count, 1, 30);
+      html += slider(el.id, 'boxSize', 'Box Size', el.boxSize, 6, 20);
+      html += checkbox(el.id, 'lineAfter', 'Line After Box', el.lineAfter);
+      if (el.lineAfter) {
+        html += slider(el.id, 'lineWidth', 'Line Width', el.lineWidth, 20, 300);
+        html += slider(el.id, 'lineWeight', 'Line Weight', el.lineWeight, 0.2, 3, 0.1);
+        html += colorPick(el.id, 'lineColor', 'Line Color', el.lineColor);
+      }
+      html += colorPick(el.id, 'boxColor', 'Box Color', el.boxColor);
+      break;
+    case 'numbers':
+      html += slider(el.id, 'count', 'Count', el.count, 1, 50);
+      html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 24);
+      html += checkbox(el.id, 'lineAfter', 'Line After Number', el.lineAfter);
+      if (el.lineAfter) {
+        html += slider(el.id, 'lineWidth', 'Line Width', el.lineWidth, 20, 300);
+        html += slider(el.id, 'lineWeight', 'Line Weight', el.lineWeight, 0.2, 3, 0.1);
+        html += colorPick(el.id, 'lineColor', 'Line Color', el.lineColor);
+      }
+      html += colorPick(el.id, 'numColor', 'Number Color', el.numColor);
+      break;
+    case 'text':
+      html += textInput(el.id, 'content', 'Text', el.content);
+      html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 48);
+      html += selectControl(el.id, 'fontWeight', 'Font Weight', el.fontWeight, [['normal','Normal'],['bold','Bold'],['300','Light']]);
+      html += selectControl(el.id, 'fontFamily', 'Font Family', el.fontFamily, [['serif','Serif'],['sans','Sans-Serif'],['mono','Monospace']]);
+      html += selectControl(el.id, 'textAlign', 'Align', el.textAlign, [['left','Left'],['center','Center'],['right','Right']]);
+      html += colorPick(el.id, 'textColor', 'Color', el.textColor);
+      html += checkbox(el.id, 'autoSize', 'Auto-size to text', el.autoSize);
+      break;
+    case 'border':
+      html += slider(el.id, 'borderWeight', 'Weight', el.borderWeight, 0.5, 6, 0.5);
+      html += slider(el.id, 'borderRadius', 'Radius', el.borderRadius, 0, 30);
+      html += selectControl(el.id, 'borderStyle', 'Style', el.borderStyle, [['solid','Solid'],['dashed','Dashed'],['dotted','Dotted']]);
+      html += colorPick(el.id, 'borderColor', 'Color', el.borderColor);
+      break;
+    case 'date-header':
+      html += `<button class="small" style="width:100%;margin-bottom:10px;" onclick="refreshDate(${el.id})">Refresh to Today</button>`;
+      html += textInput(el.id, 'dateYear', 'Year', el.dateYear);
+      html += textInput(el.id, 'dateWeek', 'Week', el.dateWeek);
+      html += textInput(el.id, 'dateMonthDay', 'Date', el.dateMonthDay);
+      html += slider(el.id, 'fontSize', 'Font Size', el.fontSize, 6, 24);
+      html += selectControl(el.id, 'fontFamily', 'Font', el.fontFamily, [['mono','Monospace'],['serif','Serif'],['sans','Sans-Serif']]);
+      html += colorPick(el.id, 'textColor', 'Color', el.textColor);
+      html += checkbox(el.id, 'showYear', 'Show Year', el.showYear);
+      html += checkbox(el.id, 'showWeek', 'Show Week', el.showWeek);
+      html += checkbox(el.id, 'showMonthDay', 'Show Date', el.showMonthDay);
+      html += checkbox(el.id, 'autoSize', 'Auto-size to text', el.autoSize);
+      break;
+    case 'separator':
+      html += slider(el.id, 'sepWeight', 'Weight', el.sepWeight, 0.5, 6, 0.5);
+      html += selectControl(el.id, 'sepStyle', 'Style', el.sepStyle, [['solid','Solid'],['dashed','Dashed'],['dotted','Dotted']]);
+      html += selectControl(el.id, 'sepDirection', 'Direction', el.sepDirection, [['horizontal','Horizontal'],['vertical','Vertical']]);
+      html += colorPick(el.id, 'sepColor', 'Color', el.sepColor);
+      break;
+  }
+
+  panel.innerHTML = html;
+
+  // Restore focus
+  if (activeId) {
+    const toFocus = panel.querySelector(`[data-prop-id="${activeId}"]`);
+    if (toFocus) {
+      toFocus.focus();
+      if (selStart !== null && toFocus.setSelectionRange) {
+        try { toFocus.setSelectionRange(selStart, selEnd); } catch(e) {}
+      }
+    }
+  }
+}
+
+// Control helpers
+function slider(id, prop, label, value, min, max, step = 1) {
+  return `<div class="control-group">
+    <div class="control-label">${label} <span class="value">${typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(1)) : value}</span></div>
+    <input type="range" min="${min}" max="${max}" step="${step}" value="${value}" data-prop-id="${prop}" oninput="updateProp(${id},'${prop}',+this.value)">
+  </div>`;
+}
+
+function colorPick(id, prop, label, value) {
+  return `<div class="control-group">
+    <div class="control-label">${label}
+      <input type="color" value="${value}" data-prop-id="${prop}" oninput="updateProp(${id},'${prop}',this.value)" style="width:28px;height:20px;border:1px solid var(--border);border-radius:2px;cursor:pointer;padding:0;">
+    </div>
+  </div>`;
+}
+
+function checkbox(id, prop, label, value) {
+  return `<label class="checkbox-control">
+    <input type="checkbox" ${value ? 'checked' : ''} data-prop-id="${prop}" onchange="updateProp(${id},'${prop}',this.checked)">
+    ${label}
+  </label>`;
+}
+
+function textInput(id, prop, label, value) {
+  return `<div class="control-group">
+    <div class="control-label">${label}</div>
+    <input type="text" value="${escapeHtml(value)}" data-prop-id="${prop}" oninput="updatePropText(${id},'${prop}',this)">
+  </div>`;
+}
+
+function selectControl(id, prop, label, value, options) {
+  let opts = options.map(([val, text]) => `<option value="${val}" ${value === val ? 'selected' : ''}>${text}</option>`).join('');
+  return `<div class="control-group">
+    <div class="control-label">${label}</div>
+    <select data-prop-id="${prop}" onchange="updateProp(${id},'${prop}',this.value)">${opts}</select>
+  </div>`;
+}
+
+function updateProp(id, prop, value) {
+  const el = elements.find(e => e.id === id);
+  if (el) {
+    el[prop] = value;
+    renderCanvasElements();
+    renderProperties();
+  }
+}
+
+// Special handler for text inputs — only re-renders canvas, not the properties panel
+function updatePropText(id, prop, inputEl) {
+  const el = elements.find(e => e.id === id);
+  if (el) {
+    el[prop] = inputEl.value;
+    renderCanvasElements();
+  }
+}
+
+function refreshDate(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  const dateInfo = formatDateInfo();
+  el.dateYear = String(dateInfo.year);
+  el.dateWeek = `Week ${dateInfo.week} of ${dateInfo.totalWeeks}`;
+  el.dateMonthDay = `${dateInfo.month} ${dateInfo.day}`;
+  renderCanvasElements();
+  renderProperties();
+}
+
+function snapToPanel(id, panelIdx) {
+  const el = elements.find(e => e.id === id);
+  if (!el || panelIdx < 1) return;
+  const b = getPanelBounds(panelIdx);
+  el.x = b.x + 8;
+  el.y = b.y + 8;
+  el.w = b.w - 16;
+  el.h = b.h - 16;
+  el.panel = panelIdx;
+  el.flipped = isPanelFlipped(panelIdx);
+  renderAll();
+}
+
+function centerElement(id, axis) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+
+  // Determine the bounding area: if element belongs to a panel, center within that panel
+  // Otherwise center within the whole page
+  let area;
+  if (el.panel > 0) {
+    area = getPanelBounds(el.panel);
+  } else {
+    area = { x: 0, y: 0, w: PAPER[orientation].w, h: PAPER[orientation].h };
+  }
+
+  if (axis === 'h' || axis === 'both') {
+    el.x = area.x + (area.w - el.w) / 2;
+  }
+  if (axis === 'v' || axis === 'both') {
+    el.y = area.y + (area.h - el.h) / 2;
+  }
+
+  renderCanvasElements();
+  renderProperties();
+}
+
+// ══════════════════════════════════════
+// DRAG & RESIZE
+// ══════════════════════════════════════
+function onElementMouseDown(e, id) {
+  if (e.target.classList.contains('resize-handle')) return;
+  e.preventDefault();
+  selectedElementId = id;
+
+  const el = elements.find(e => e.id === id);
+  const paper = document.getElementById('paper');
+  const rect = paper.getBoundingClientRect();
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+
+  dragState = {
+    type: 'move', id,
+    startX: e.clientX, startY: e.clientY,
+    origX: el.x, origY: el.y,
+    scaleX: pw / rect.width, scaleY: ph / rect.height
+  };
+  renderAll();
+}
+
+function onResizeMouseDown(e, id) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectedElementId = id;
+
+  const el = elements.find(e => e.id === id);
+  const paper = document.getElementById('paper');
+  const rect = paper.getBoundingClientRect();
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+
+  dragState = {
+    type: 'resize', id,
+    startX: e.clientX, startY: e.clientY,
+    origW: el.w, origH: el.h,
+    scaleX: pw / rect.width, scaleY: ph / rect.height
+  };
+  renderAll();
+}
+
+document.addEventListener('mousemove', e => {
+  if (!dragState) return;
+  const el = elements.find(el => el.id === dragState.id);
+  if (!el) return;
+
+  const dx = (e.clientX - dragState.startX) * dragState.scaleX;
+  const dy = (e.clientY - dragState.startY) * dragState.scaleY;
+
+  if (dragState.type === 'move') {
+    el.x = Math.max(0, Math.min(PAPER[orientation].w - el.w, dragState.origX + dx));
+    el.y = Math.max(0, Math.min(PAPER[orientation].h - el.h, dragState.origY + dy));
+  } else {
+    el.w = Math.max(20, dragState.origW + dx);
+    el.h = Math.max(20, dragState.origH + dy);
+  }
+
+  renderCanvasElements();
+  renderProperties();
+});
+
+document.addEventListener('mouseup', () => { dragState = null; });
+
+document.getElementById('paper').addEventListener('mousedown', e => {
+  if (e.target === document.getElementById('paper') || e.target.closest('.fold-lines')) {
+    selectedElementId = null;
+    renderAll();
+  }
+});
+
+// ══════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  const el = elements.find(el => el.id === selectedElementId);
+
+  if ((e.key === 'Delete' || e.key === 'Backspace') && el) { removeElement(el.id); e.preventDefault(); }
+  if (e.key === 'd' && (e.ctrlKey || e.metaKey) && el) { duplicateSelected(); e.preventDefault(); }
+
+  if (el && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    const step = e.shiftKey ? 10 : 1;
+    if (e.key === 'ArrowUp') el.y = Math.max(0, el.y - step);
+    if (e.key === 'ArrowDown') el.y = Math.min(PAPER[orientation].h - el.h, el.y + step);
+    if (e.key === 'ArrowLeft') el.x = Math.max(0, el.x - step);
+    if (e.key === 'ArrowRight') el.x = Math.min(PAPER[orientation].w - el.w, el.x + step);
+    renderCanvasElements();
+    renderProperties();
+  }
+});
+
+// ══════════════════════════════════════
+// ORIENTATION & ZOOM & FOLDS
+// ══════════════════════════════════════
+function setOrientation(o) {
+  orientation = o;
+  document.getElementById('btn-landscape').classList.toggle('active', o === 'landscape');
+  document.getElementById('btn-portrait').classList.toggle('active', o === 'portrait');
+  renderAll();
+}
+
+function setZoom(z) {
+  zoom = Math.max(0.3, Math.min(2, z));
+  document.getElementById('zoom-label').textContent = Math.round(zoom * 100) + '%';
+  renderPaper();
+  renderCanvasElements();
+}
+
+function toggleFoldLines() {
+  showFolds = !showFolds;
+  document.getElementById('btn-folds').textContent = 'Folds: ' + (showFolds ? 'On' : 'Off');
+  renderPaper();
+}
+
+document.getElementById('batch-mode').addEventListener('change', function() {
+  document.getElementById('batch-count-wrap').style.display = this.value === 'single' ? 'none' : 'inline-flex';
+});
+
+// ══════════════════════════════════════
+// FILE SAVE / LOAD
+// ══════════════════════════════════════
+function getProjectData() {
+  return { orientation, elements, nextId };
+}
+
+function loadProjectData(data) {
+  orientation = data.orientation || 'landscape';
+  elements = data.elements || [];
+  nextId = data.nextId || elements.length + 1;
+  selectedElementId = null;
+  document.getElementById('btn-landscape').classList.toggle('active', orientation === 'landscape');
+  document.getElementById('btn-portrait').classList.toggle('active', orientation === 'portrait');
+  renderAll();
+}
+
+function buildPageSvg(pageElements, pw, ph, pageW, pageH) {
+  let elementsHtml = '';
+  pageElements.forEach(el => {
+    autoSizeElement(el);
+    const left = el.x;
+    const top = el.y;
+    const transforms = [];
+    if (el.flipped) {
+      transforms.push(`translate(${el.x + el.w},${el.y + el.h}) rotate(180) translate(${-el.x},${-el.y})`);
+    }
+    const transformAttr = transforms.length ? ` transform="${transforms.join(' ')}"` : '';
+    const svgInner = drawElement(el);
+    const match = svgInner.match(/<svg[^>]*>([\s\S]*?)<\/svg>/);
+    const inner = match ? match[1] : '';
+    const vbMatch = svgInner.match(/viewBox="([^"]+)"/);
+    const vb = vbMatch ? vbMatch[1] : `0 0 ${el.w} ${el.h}`;
+    elementsHtml += `<svg x="${left}" y="${top}" width="${el.w}" height="${el.h}" viewBox="${vb}" preserveAspectRatio="${el.type === 'text' || el.type === 'date-header' ? 'xMinYMin meet' : 'none'}"${transformAttr}>${inner}</svg>\n`;
+  });
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${pageW}" height="${pageH}" viewBox="0 0 ${pw} ${ph}">
+  <rect width="${pw}" height="${ph}" fill="white"/>
+  <line x1="0" y1="${ph/2}" x2="${pw*0.25}" y2="${ph/2}" stroke="#000" stroke-width="0.5" stroke-dasharray="1.5,4.5"/>
+  <line x1="${pw*0.75}" y1="${ph/2}" x2="${pw}" y2="${ph/2}" stroke="#000" stroke-width="0.5" stroke-dasharray="1.5,4.5"/>
+  <line x1="${pw*0.25}" y1="0" x2="${pw*0.25}" y2="${ph}" stroke="#000" stroke-width="0.5" stroke-dasharray="1.5,4.5"/>
+  <line x1="${pw*0.5}" y1="0" x2="${pw*0.5}" y2="${ph}" stroke="#000" stroke-width="0.5" stroke-dasharray="1.5,4.5"/>
+  <line x1="${pw*0.75}" y1="0" x2="${pw*0.75}" y2="${ph}" stroke="#000" stroke-width="0.5" stroke-dasharray="1.5,4.5"/>
+  <line x1="${pw*0.25}" y1="${ph/2}" x2="${pw*0.75}" y2="${ph/2}" stroke="#e44" stroke-width="0.75" stroke-dasharray="6,4"/>
+  <text x="${pw*0.25 + 2}" y="${ph/2 - 3}" font-size="7" font-family="'DM Mono', monospace" fill="#e44">✂ cut</text>
+  ${elementsHtml}
+</svg>`;
+}
+
+function exportPDF() {
+  const pw = PAPER[orientation].w;
+  const ph = PAPER[orientation].h;
+  const isLandscape = orientation === 'landscape';
+  const pageW = isLandscape ? '11in' : '8.5in';
+  const pageH = isLandscape ? '8.5in' : '11in';
+
+  const mode = document.getElementById('batch-mode').value;
+  const count = mode === 'single' ? 1 : parseInt(document.getElementById('batch-count').value) || 1;
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) { toast('Pop-up blocked — allow pop-ups and try again'); return; }
+
+  let pages = '';
+  const today = new Date();
+
+  for (let i = 0; i < count; i++) {
+    const date = new Date(today);
+    if (mode === 'weekly') date.setDate(date.getDate() + i * 7);
+    else if (mode === 'daily') date.setDate(date.getDate() + i);
+
+    const pageEls = mode === 'single' ? elements : updateDateElements(elements, date);
+    pages += buildPageSvg(pageEls, pw, ph, pageW, pageH);
+    if (i < count - 1) pages += '\n';
+  }
+
+  printWin.document.write(`<!DOCTYPE html>
+<html><head><title>Zine Layout</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  @page { size: ${pageW} ${pageH}; margin: 0; }
+  * { margin: 0; padding: 0; }
+  body { margin: 0; }
+  svg { display: block; page-break-after: always; }
+  svg:last-of-type { page-break-after: auto; }
+</style>
+</head><body>
+${pages}
+<script>
+  document.fonts.ready.then(() => {
+    setTimeout(() => { window.print(); }, 300);
+  });
+<\/script>
+</body></html>`);
+  printWin.document.close();
+}
+
+function exportJSON() {
+  const data = JSON.stringify(getProjectData(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'zine-layout.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Layout saved to file');
+}
+
+function importJSON() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        loadProjectData(JSON.parse(ev.target.result));
+        toast('Layout loaded');
+      } catch (err) { toast('Error loading file'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+// ══════════════════════════════════════
+// TEMPLATES (localStorage)
+// ══════════════════════════════════════
+function getTemplates() {
+  try { return JSON.parse(localStorage.getItem('zine-templates') || '[]'); }
+  catch { return []; }
+}
+
+function saveTemplates(templates) {
+  localStorage.setItem('zine-templates', JSON.stringify(templates));
+}
+
+function showTemplateDialog() {
+  const container = document.getElementById('modal-container');
+  const templates = getTemplates();
+
+  let templateListHtml = '';
+  if (templates.length === 0) {
+    templateListHtml = '<div class="empty-state">No saved templates yet.</div>';
+  } else {
+    templates.forEach((t, i) => {
+      templateListHtml += `
+        <div class="template-item" onclick="loadTemplate(${i})">
+          <span class="t-name">${escapeHtml(t.name)}</span>
+          <span class="t-date">${t.date || ''}</span>
+          <span class="t-actions">
+            <button class="small danger" onclick="event.stopPropagation(); deleteTemplate(${i})">×</button>
+          </span>
+        </div>
+      `;
+    });
+  }
+
+  container.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal">
+        <h3>Templates</h3>
+        <div style="margin-bottom:12px;">
+          <div class="control-label" style="margin-bottom:4px;">Save current layout as template:</div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="template-name-input" placeholder="Template name..." style="flex:1;">
+            <button class="small primary" onclick="saveCurrentAsTemplate()">Save</button>
+          </div>
+        </div>
+        <div style="max-height:300px;overflow-y:auto;">
+          ${templateListHtml}
+        </div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <div class="control-label" style="margin-bottom:4px;">Project files (JSON):</div>
+          <div style="display:flex;gap:6px;">
+            <button class="small" style="flex:1" onclick="exportJSON(); closeModal();">Export JSON</button>
+            <button class="small" style="flex:1" onclick="importJSON(); closeModal();">Import JSON</button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button onclick="closeModal()">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function closeModal() {
+  document.getElementById('modal-container').innerHTML = '';
+}
+
+function saveCurrentAsTemplate() {
+  const nameInput = document.getElementById('template-name-input');
+  const name = nameInput.value.trim();
+  if (!name) { toast('Enter a template name'); return; }
+
+  const templates = getTemplates();
+  templates.push({
+    name,
+    date: new Date().toLocaleDateString(),
+    data: getProjectData()
+  });
+  saveTemplates(templates);
+  toast(`Template "${name}" saved`);
+  showTemplateDialog(); // refresh
+}
+
+function loadTemplate(index) {
+  const templates = getTemplates();
+  if (templates[index]) {
+    loadProjectData(templates[index].data);
+    closeModal();
+    toast(`Loaded "${templates[index].name}"`);
+  }
+}
+
+function deleteTemplate(index) {
+  const templates = getTemplates();
+  const name = templates[index].name;
+  if (!confirm(`Delete template "${name}"?`)) return;
+  templates.splice(index, 1);
+  saveTemplates(templates);
+  toast(`Deleted "${name}"`);
+  showTemplateDialog(); // refresh
+}
+
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timeout);
+  t._timeout = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+// ══════════════════════════════════════
+// RENDER ALL
+// ══════════════════════════════════════
+function renderAll() {
+  renderPaper();
+  renderCanvasElements();
+  renderPanelSelector();
+  renderElementList();
+  renderProperties();
+}
+
+renderAll();
+</script>
+</body>
+</html>
